@@ -5,7 +5,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-cmd = ["cargo", "+1.88.0", "package", "-p", "openbim-mmc", "--allow-dirty", "--locked", "--no-verify", "--list"]
+cmd = ["cargo", "+1.88.0", "package", "-p", "openbim-mmc", "--locked", "--no-verify", "--list"]
 result = subprocess.run(cmd, cwd=ROOT, text=True, capture_output=True)
 if result.returncode:
     print(result.stdout, end="", file=sys.stderr)
@@ -17,7 +17,9 @@ allowed_files = {
     "README.md", "LICENSE", "CHANGELOG.md",
 }
 for path in paths:
-    if path in allowed_files or path.startswith("src/") or path.startswith("tests/"):
+    if path in allowed_files:
+        continue
+    if (path.startswith("src/") or path.startswith("tests/")) and path.endswith(".rs"):
         continue
     raise SystemExit(f"unexpected package member: {path}")
 blocked = (".pdf", ".xsd", ".mmc", ".zip")

@@ -1,6 +1,11 @@
 # openbim-mmc
 
-Safe, lossless Rust mechanics for DIN 18290-1 / Multi-Model Container 2.0 archives.
+Safe, lossless Rust mechanics for Multi-Model Container 2.0 archives used in DIN 18290 workflows.
+
+The typed projection and writer target the public buildingSMART MMC `2.0.0`
+schema shape. This crate does not claim complete conformance with every DIN
+18290-1 edition, and `validate()` is a structural/referential check rather than
+a complete XSD validator.
 
 ```rust
 use openbim_mmc::MmcArchive;

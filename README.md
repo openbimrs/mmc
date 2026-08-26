@@ -1,6 +1,14 @@
 # openbim-mmc
 
-Pure-Rust DIN 18290-1 / Multi-Model Container 2.0 mechanics.
+Pure-Rust Multi-Model Container (MMC) 2.0 mechanics for DIN 18290 workflows.
+
+## Compatibility status
+
+The typed XML projection and writer target the public buildingSMART MMC `2.0.0`
+schemas. The crate does **not** claim complete conformance with every edition of
+DIN 18290-1; normative DIN documents and current digital annexes are not
+redistributed. `validate()` checks the implemented structural and referential
+contract, not full XSD conformance.
 
 ## Implemented
 
@@ -36,7 +44,7 @@ archive.extract_to("out")?;
 
 ## Verification
 
-Run `scripts/gate.sh`. The gate pins Rust `1.88.0`, tests all targets, denies Clippy and rustdoc warnings, verifies the minimal feature build, and audits package contents. `scripts/mutation-probes.py` proves critical tests detect weakened guards.
+Run `scripts/gate.sh` from a clean Git tree. The gate pins Rust `1.88.0`, tests all targets, denies Clippy and rustdoc warnings, verifies the minimal feature build, and audits package contents. `scripts/mutation-probes.py` proves critical tests detect weakened guards.
 
 See [ADR 0001](docs/adr/0001-format-boundary.md), the [roadmap](docs/ROADMAP.md), and the [changelog](CHANGELOG.md).
 
