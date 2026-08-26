@@ -109,20 +109,32 @@ pub(crate) fn parse_multimodel(source: &[u8], limits: Limits) -> Result<MultiMod
                 stack.pop();
             }
             Event::Text(text) => {
+                let decoded = text
+                    .xml_content()
+                    .map_err(|error| xml_error("MultiModel.xml", error))?;
+                if decoded.chars().any(|character| !is_xml_char(character)) {
+                    return Err(xml_message(
+                        "MultiModel.xml",
+                        "text resolves to a character forbidden by XML 1.0",
+                    ));
+                }
+                if stack.is_empty() && !decoded.trim().is_empty() {
+                    return Err(xml_message(
+                        "MultiModel.xml",
+                        "character content outside the document root",
+                    ));
+                }
                 if let Some(value) = &mut linked_model_text {
-                    let decoded = text
-                        .xml_content()
-                        .map_err(|error| xml_error("MultiModel.xml", error))?;
-                    if decoded.chars().any(|character| !is_xml_char(character)) {
-                        return Err(xml_message(
-                            "MultiModel.xml",
-                            "text resolves to a character forbidden by XML 1.0",
-                        ));
-                    }
                     value.push_str(&decoded);
                 }
             }
             Event::CData(text) => {
+                if stack.is_empty() {
+                    return Err(xml_message(
+                        "MultiModel.xml",
+                        "CDATA outside the document root",
+                    ));
+                }
                 if let Some(value) = &mut linked_model_text {
                     value.push_str(
                         std::str::from_utf8(text.as_ref())
@@ -143,6 +155,12 @@ pub(crate) fn parse_multimodel(source: &[u8], limits: Limits) -> Result<MultiMod
                 return Err(xml_message("MultiModel.xml", "DOCTYPE is prohibited"));
             }
             Event::GeneralRef(reference) => {
+                if stack.is_empty() {
+                    return Err(xml_message(
+                        "MultiModel.xml",
+                        "entity reference outside the document root",
+                    ));
+                }
                 let character = resolve_xml_reference(&reference, "MultiModel.xml")?;
                 if let Some(value) = &mut linked_model_text {
                     value.push(character);
@@ -325,8 +343,32 @@ pub(crate) fn parse_link_model(
             Event::End(_) => {
                 stack.pop();
             }
+            Event::Text(text) => {
+                let decoded = text.xml_content().map_err(|error| xml_error(path, error))?;
+                if decoded.chars().any(|character| !is_xml_char(character)) {
+                    return Err(xml_message(
+                        path,
+                        "text resolves to a character forbidden by XML 1.0",
+                    ));
+                }
+                if stack.is_empty() && !decoded.trim().is_empty() {
+                    return Err(xml_message(
+                        path,
+                        "character content outside the document root",
+                    ));
+                }
+            }
+            Event::CData(_) if stack.is_empty() => {
+                return Err(xml_message(path, "CDATA outside the document root"));
+            }
             Event::DocType(_) => return Err(xml_message(path, "DOCTYPE is prohibited")),
             Event::GeneralRef(reference) => {
+                if stack.is_empty() {
+                    return Err(xml_message(
+                        path,
+                        "entity reference outside the document root",
+                    ));
+                }
                 resolve_xml_reference(&reference, path)?;
             }
             Event::Eof => {

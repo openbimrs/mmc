@@ -132,3 +132,28 @@ fn linked_model_text_resolves_numeric_entity_references() {
     let unknown = index.replace("model&#x2D;ifc", "model&custom;ifc");
     assert!(MmcArchive::parse(common::zip(&[("MultiModel.xml", unknown.as_bytes(),)])).is_err());
 }
+
+#[test]
+fn rejects_content_outside_the_single_document_root() {
+    let index = String::from_utf8(common::valid_multimodel(
+        "links/elements.xml",
+        "models/model.ifc",
+    ))
+    .unwrap();
+    for trailing in ["garbage", "<x:extra xmlns:x=\"urn:extension\"/>"] {
+        let malformed = format!("{index}{trailing}");
+        assert!(
+            MmcArchive::parse(common::zip(&[("MultiModel.xml", malformed.as_bytes(),)])).is_err()
+        );
+    }
+
+    let valid_link = String::from_utf8(common::valid_link_model()).unwrap();
+    for trailing in ["garbage", "<x:extra xmlns:x=\"urn:extension\"/>"] {
+        let link = format!("{valid_link}{trailing}");
+        let archive = common::zip(&[
+            ("MultiModel.xml", index.as_bytes()),
+            ("links/elements.xml", link.as_bytes()),
+        ]);
+        assert!(MmcArchive::parse(archive).is_err());
+    }
+}

@@ -92,6 +92,20 @@ PROBES = [
         "if true {",
         ["test", "--test", "builder", "builder_omits_the_optional_link_models_collection_when_empty", "--", "--exact"],
     ),
+    (
+        "multimodel-content-after-root",
+        "openbim-mmc/src/xml.rs",
+        "if stack.is_empty() && !decoded.trim().is_empty() {\n                    return Err(xml_message(\n                        \"MultiModel.xml\",",
+        "if false {\n                    return Err(xml_message(\n                        \"MultiModel.xml\",",
+        ["test", "--test", "conformance", "rejects_content_outside_the_single_document_root", "--", "--exact"],
+    ),
+    (
+        "link-model-content-after-root",
+        "openbim-mmc/src/xml.rs",
+        "if stack.is_empty() && !decoded.trim().is_empty() {\n                    return Err(xml_message(\n                        path,",
+        "if false {\n                    return Err(xml_message(\n                        path,",
+        ["test", "--test", "conformance", "rejects_content_outside_the_single_document_root", "--", "--exact"],
+    ),
 ]
 
 with tempfile.TemporaryDirectory(prefix="openbim-mmc-mutations-") as temporary:
