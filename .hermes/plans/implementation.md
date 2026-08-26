@@ -36,8 +36,8 @@ Ship a public, production-safe pure-Rust `openbim-mmc` crate for MMC 2.0 archive
 
 ## Milestone status
 
-Core implementation, security hardening, and independent-review fixes are complete and landed publicly. Commit `2ef4984` was pushed to `main` on `https://github.com/openbimrs/mmc`, verified from a clean public clone, and hosted CI (gate + mutations) passed on that push. The exact pushed tree carries 37 tests, strict Clippy, rustdoc, package allowlisting/verification, and eight mutation probes. A builder-generated sample validates against both public MMC 2.0 XSDs without vendoring them. Documentation explicitly avoids claiming complete conformance with every DIN edition.
+Core implementation, security hardening, and independent-review fixes are complete and landed publicly. A delayed exact-tree review of `c280ec7` exposed three additional release blockers; all were reproduced before correction: truncated XML acceptance, schema-invalid empty `LinkModels`, and dropped XML entity references in `LinkedModel` text. The current candidate fixes those defects with 41 tests and 12 mutation probes. Documentation explicitly avoids claiming complete conformance with every DIN edition.
 
 ## Next action
 
-Publication readiness reached: gate, mutation probes, package verification, public push, clean-clone verification, and hosted CI all pass on the exact pushed tree. Remaining before crates.io publish: final owner go-ahead.
+Commit the follow-up corrections, run the complete exact-tree Rust 1.88/package/mutation gate, obtain an independent review of that exact commit, then push and repeat clean-public-clone/package-consumer/XSD verification before declaring crates.io readiness.

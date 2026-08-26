@@ -143,3 +143,31 @@ fn builder_rejects_collisions_and_missing_payloads() {
     builder.add_application_model(model).unwrap();
     assert!(builder.build().is_err());
 }
+
+#[test]
+fn builder_omits_the_optional_link_models_collection_when_empty() {
+    let mut builder = MmcArchiveBuilder::new(ContainerMetadata::default());
+    builder
+        .add_application_model(ApplicationModel {
+            id: "model".to_owned(),
+            model_type: "opaque".to_owned(),
+            representations: vec![ModelData {
+                id: "representation".to_owned(),
+                format_type: "opaque".to_owned(),
+                resources: vec![DataResource {
+                    id: "resource".to_owned(),
+                    location: ResourceLocation::External(
+                        "https://example.test/model.bin".to_owned(),
+                    ),
+                    ..DataResource::default()
+                }],
+                ..ModelData::default()
+            }],
+            ..ApplicationModel::default()
+        })
+        .unwrap();
+
+    let archive = builder.build().unwrap();
+    let xml = std::str::from_utf8(archive.container().source_bytes()).unwrap();
+    assert!(!xml.contains("LinkModels"));
+}

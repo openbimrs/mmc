@@ -175,24 +175,26 @@ fn serialize_multimodel(
     }
     writer.write_event(Event::End(BytesEnd::new("mmc:ApplicationModels")))?;
 
-    writer.write_event(Event::Start(BytesStart::new("mmc:LinkModels")))?;
-    for reference in link_models {
-        let mut element = BytesStart::new("mmc:LinkModel");
-        match &reference.location {
-            ResourceLocation::Embedded(path) | ResourceLocation::External(path) => {
-                element.push_attribute(("location", path.as_str()));
+    if !link_models.is_empty() {
+        writer.write_event(Event::Start(BytesStart::new("mmc:LinkModels")))?;
+        for reference in link_models {
+            let mut element = BytesStart::new("mmc:LinkModel");
+            match &reference.location {
+                ResourceLocation::Embedded(path) | ResourceLocation::External(path) => {
+                    element.push_attribute(("location", path.as_str()));
+                }
             }
+            writer.write_event(Event::Start(element))?;
+            write_metadata(&mut writer, "mmc", &reference.metadata, false)?;
+            for model in &reference.linked_models {
+                writer.write_event(Event::Start(BytesStart::new("mmc:LinkedModel")))?;
+                writer.write_event(Event::Text(BytesText::new(model)))?;
+                writer.write_event(Event::End(BytesEnd::new("mmc:LinkedModel")))?;
+            }
+            writer.write_event(Event::End(BytesEnd::new("mmc:LinkModel")))?;
         }
-        writer.write_event(Event::Start(element))?;
-        write_metadata(&mut writer, "mmc", &reference.metadata, false)?;
-        for model in &reference.linked_models {
-            writer.write_event(Event::Start(BytesStart::new("mmc:LinkedModel")))?;
-            writer.write_event(Event::Text(BytesText::new(model)))?;
-            writer.write_event(Event::End(BytesEnd::new("mmc:LinkedModel")))?;
-        }
-        writer.write_event(Event::End(BytesEnd::new("mmc:LinkModel")))?;
+        writer.write_event(Event::End(BytesEnd::new("mmc:LinkModels")))?;
     }
-    writer.write_event(Event::End(BytesEnd::new("mmc:LinkModels")))?;
     writer.write_event(Event::End(BytesEnd::new("mmc:MultiModel")))?;
     Ok(writer.into_inner())
 }

@@ -64,6 +64,34 @@ PROBES = [
         "if false {",
         ["test", "--test", "limits", "rejects_forged_uncompressed_sizes_using_actual_output_budgets", "--", "--exact"],
     ),
+    (
+        "multimodel-truncation",
+        "openbim-mmc/src/xml.rs",
+        "if !stack.is_empty() {\n                    return Err(xml_message(\"MultiModel.xml\", \"truncated XML document\"));",
+        "if false {\n                    return Err(xml_message(\"MultiModel.xml\", \"truncated XML document\"));",
+        ["test", "--test", "conformance", "truncated_multimodel_is_rejected_at_every_open_depth", "--", "--exact"],
+    ),
+    (
+        "link-model-truncation",
+        "openbim-mmc/src/xml.rs",
+        "if !stack.is_empty() {\n                    return Err(xml_message(path, \"truncated XML document\"));",
+        "if false {\n                    return Err(xml_message(path, \"truncated XML document\"));",
+        ["test", "--test", "conformance", "truncated_link_model_is_rejected_at_every_open_depth", "--", "--exact"],
+    ),
+    (
+        "linked-model-entity-reference",
+        "openbim-mmc/src/xml.rs",
+        "value.push(character);",
+        "drop(character);",
+        ["test", "--test", "conformance", "linked_model_text_resolves_numeric_entity_references", "--", "--exact"],
+    ),
+    (
+        "empty-link-models-container",
+        "openbim-mmc/src/builder.rs",
+        "if !link_models.is_empty() {",
+        "if true {",
+        ["test", "--test", "builder", "builder_omits_the_optional_link_models_collection_when_empty", "--", "--exact"],
+    ),
 ]
 
 with tempfile.TemporaryDirectory(prefix="openbim-mmc-mutations-") as temporary:

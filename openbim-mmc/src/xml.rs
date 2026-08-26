@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use quick_xml::{
     encoding::Decoder,
-    events::{BytesStart, Event},
+    events::{BytesRef, BytesStart, Event},
     name::ResolveResult,
     NsReader,
 };
@@ -142,7 +142,18 @@ pub(crate) fn parse_multimodel(source: &[u8], limits: Limits) -> Result<MultiMod
             Event::DocType(_) => {
                 return Err(xml_message("MultiModel.xml", "DOCTYPE is prohibited"));
             }
-            Event::Eof => break,
+            Event::GeneralRef(reference) => {
+                let character = resolve_xml_reference(&reference, "MultiModel.xml")?;
+                if let Some(value) = &mut linked_model_text {
+                    value.push(character);
+                }
+            }
+            Event::Eof => {
+                if !stack.is_empty() {
+                    return Err(xml_message("MultiModel.xml", "truncated XML document"));
+                }
+                break;
+            }
             _ => {}
         }
         buffer.clear();
@@ -315,7 +326,15 @@ pub(crate) fn parse_link_model(
                 stack.pop();
             }
             Event::DocType(_) => return Err(xml_message(path, "DOCTYPE is prohibited")),
-            Event::Eof => break,
+            Event::GeneralRef(reference) => {
+                resolve_xml_reference(&reference, path)?;
+            }
+            Event::Eof => {
+                if !stack.is_empty() {
+                    return Err(xml_message(path, "truncated XML document"));
+                }
+                break;
+            }
             _ => {}
         }
         buffer.clear();
@@ -656,6 +675,39 @@ fn is_xml_char(character: char) -> bool {
         character,
         '\u{9}' | '\u{A}' | '\u{D}' | '\u{20}'..='\u{D7FF}' | '\u{E000}'..='\u{FFFD}' | '\u{10000}'..='\u{10FFFF}'
     )
+}
+
+fn resolve_xml_reference(reference: &BytesRef<'_>, path: &str) -> Result<char, MmcError> {
+    let character = match reference
+        .resolve_char_ref()
+        .map_err(|error| xml_error(path, error))?
+    {
+        Some(character) => character,
+        None => match reference
+            .decode()
+            .map_err(|error| xml_error(path, error))?
+            .as_ref()
+        {
+            "lt" => '<',
+            "gt" => '>',
+            "amp" => '&',
+            "apos" => '\'',
+            "quot" => '"',
+            name => {
+                return Err(xml_message(
+                    path,
+                    format!("undeclared entity reference &{name};"),
+                ));
+            }
+        },
+    };
+    if !is_xml_char(character) {
+        return Err(xml_message(
+            path,
+            "entity reference resolves to a character forbidden by XML 1.0",
+        ));
+    }
+    Ok(character)
 }
 
 fn check_count(resource: &'static str, actual: usize, maximum: usize) -> Result<(), MmcError> {

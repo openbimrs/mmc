@@ -73,3 +73,62 @@ fn link_model_errors_report_the_embedded_document_path() {
     let error = MmcArchive::parse(&bytes).unwrap_err();
     assert!(matches!(error, MmcError::Xml { path, .. } if path == "links/broken.xml"));
 }
+
+#[test]
+fn truncated_multimodel_is_rejected_at_every_open_depth() {
+    let source = String::from_utf8(common::valid_multimodel(
+        "links/elements.xml",
+        "models/model.ifc",
+    ))
+    .unwrap();
+    let truncations = source
+        .match_indices("</")
+        .map(|(offset, _)| &source[..offset]);
+    for (case, truncated) in truncations.enumerate() {
+        let bytes = common::zip(&[("MultiModel.xml", truncated.as_bytes())]);
+        assert!(
+            MmcArchive::parse(&bytes).is_err(),
+            "truncation case {case} was accepted"
+        );
+    }
+}
+
+#[test]
+fn truncated_link_model_is_rejected_at_every_open_depth() {
+    let index = common::valid_multimodel("links/elements.xml", "models/model.ifc");
+    let source = String::from_utf8(common::valid_link_model()).unwrap();
+    let truncations = source
+        .match_indices("</")
+        .map(|(offset, _)| &source[..offset]);
+    for (case, truncated) in truncations.enumerate() {
+        let bytes = common::zip(&[
+            ("MultiModel.xml", index.as_slice()),
+            ("links/elements.xml", truncated.as_bytes()),
+        ]);
+        assert!(
+            MmcArchive::parse(&bytes).is_err(),
+            "truncation case {case} was accepted"
+        );
+    }
+}
+
+#[test]
+fn linked_model_text_resolves_numeric_entity_references() {
+    let index = String::from_utf8(common::valid_multimodel(
+        "links/elements.xml",
+        "models/model.ifc",
+    ))
+    .unwrap()
+    .replace(
+        ">model-ifc</mmc:LinkedModel>",
+        ">model&#x2D;ifc</mmc:LinkedModel>",
+    );
+    let archive = MmcArchive::parse(common::zip(&[("MultiModel.xml", index.as_bytes())])).unwrap();
+    assert_eq!(
+        archive.container().link_models[0].linked_models[0],
+        "model-ifc"
+    );
+
+    let unknown = index.replace("model&#x2D;ifc", "model&custom;ifc");
+    assert!(MmcArchive::parse(common::zip(&[("MultiModel.xml", unknown.as_bytes(),)])).is_err());
+}
