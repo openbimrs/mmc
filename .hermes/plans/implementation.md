@@ -2,7 +2,7 @@
 
 ## Goal
 
-Ship a public, production-safe pure-Rust `openbim-mmc` crate for DIN 18290-1 / MMC 2.0 archives without conflating MMC with ISO 21597 ICDD or DIN 18290 Parts 2–4 domain semantics.
+Ship a public, production-safe pure-Rust `openbim-mmc` crate for MMC 2.0 archives used in DIN 18290 workflows without conflating MMC with ISO 21597 ICDD or DIN 18290 Parts 2–4 domain semantics.
 
 ## Constraints
 
@@ -26,7 +26,7 @@ Ship a public, production-safe pure-Rust `openbim-mmc` crate for DIN 18290-1 / M
 - Test-first happy path and adversarial corpus.
 - `fmt`, `build`, `test`, strict Clippy, docs, isolated crate build.
 - Package content allowlist and external consumer smoke test.
-- Mutate root namespace/path/linked-model checks and prove tests fail.
+- Mutate root namespace/path/linked-model and measured-decompression checks and prove tests fail.
 
 ## Risk and rollback
 
@@ -36,8 +36,8 @@ Ship a public, production-safe pure-Rust `openbim-mmc` crate for DIN 18290-1 / M
 
 ## Milestone status
 
-Core implementation is complete. Rust 1.88.0 gate, 35 tests, strict Clippy, rustdoc, package allowlist, package verification, four mutation probes, and an extracted-package consumer pass. A builder-generated sample validates against both public MMC 2.0 XSDs without vendoring them.
+Core implementation and the first independent-review fixes are complete. The clean exact tree passes the Rust 1.88.0 gate, 36 tests, strict Clippy, rustdoc, package allowlisting/verification, seven mutation probes, and an extracted-package consumer. A builder-generated sample validates against both public MMC 2.0 XSDs without vendoring them. Documentation explicitly avoids claiming complete conformance with every DIN edition.
 
 ## Next action
 
-Resolve independent exact-tree review findings, rerun the gate, push `main`, and verify a clean public clone.
+Run a final independent exact-tree blocker review, push `main`, and verify the public clone and hosted CI.
