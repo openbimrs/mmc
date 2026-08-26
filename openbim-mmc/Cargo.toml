@@ -1,0 +1,24 @@
+[package]
+name = "openbim-mmc"
+version = "0.1.0"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+description = "Pure-Rust DIN 18290-1 multi-model container reading, validation, extraction, and writing."
+readme = "README.md"
+keywords = ["mmc", "bim", "openbim", "din-18290", "multimodel"]
+categories = ["parser-implementations", "data-structures", "filesystem"]
+include = ["src/**", "tests/**", "README.md", "LICENSE", "CHANGELOG.md", "Cargo.toml"]
+
+[dependencies]
+iri-string.workspace = true
+quick-xml.workspace = true
+thiserror.workspace = true
+unicode-normalization.workspace = true
+uuid.workspace = true
+zip.workspace = true
+
+[dev-dependencies]
+tempfile = "3.23.0"

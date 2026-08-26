@@ -1,0 +1,4 @@
+/target/
+*.mmc
+*.zip
+.DS_Store
