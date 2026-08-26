@@ -1,25 +1,31 @@
 # Roadmap
 
-## Implemented: MMC 2.0 core
+## Core status
 
-- MMC 2.0 archive envelope used by DIN 18290 workflows
-- `MultiModel.xml`
-- LinkModel XML
-- opaque embedded and external application resources
-- structural/referential validation
-- deterministic writing and safe extraction
+The MMC 2.0 archive/XML core is implemented, tested, mutation-verified, and independently reviewed. Further core work should be driven by concrete interoperability cases rather than speculative format coupling.
 
-## Next: domain layers
+## Domain profiles
 
-DIN 18290 Parts 2–4 belong above this crate:
+DIN 18290 Parts 2–4 belong above the container:
 
 - BIM-LV profile using `openbim-gaeb`;
 - BIM cost profile using `openbim-gaeb`;
 - BIM invoicing profile using `openbim-gaeb`;
 - optional semantic IFC validation using the canonical IFC repository.
 
-A future MMC↔ICDD converter must depend on both cores. Neither format core will depend on the other.
+These domain crates should add stable, opt-in APIs without changing the lossless MMC core.
 
-Supporting a newer MMC/DIN schema revision requires a separately reviewed,
-versioned compatibility layer. Public MMC 2.0 schemas alone are not evidence of
-complete conformance with current normative DIN editions.
+## Cross-format integration
+
+A future MMC↔ICDD converter should depend on both format cores and expose conversion losses explicitly. `openbim-mmc` and `openbim-icdd` remain independent.
+
+## New schema revisions
+
+A newer MMC or DIN schema revision requires an explicit, versioned compatibility layer backed by redistributable test material or caller-supplied local schemas. Public MMC 2.0 prior art is not evidence for every current DIN edition.
+
+## Non-goals
+
+- embedding licensed DIN/CEN/ISO material;
+- adding an `mmc` alias package;
+- coupling core MMC mechanics to ICDD, IFC, or GAEB semantics;
+- claiming byte-identical ZIP-envelope reconstruction after deterministic re-emission.

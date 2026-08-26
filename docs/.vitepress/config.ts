@@ -22,7 +22,7 @@ export default defineConfig({
       { text: 'Architecture', link: '/architecture/' },
       { text: 'Security', link: '/security' },
       { text: 'API', link: '/api/rust' },
-      { text: 'Roadmap', link: '/project/roadmap' },
+      { text: 'Roadmap', link: '/ROADMAP' },
     ],
     sidebar: {
       '/guide/': [
@@ -49,12 +49,6 @@ export default defineConfig({
           ],
         },
       ],
-      '/project/': [
-        {
-          text: 'Project',
-          items: [{ text: 'Roadmap', link: '/project/roadmap' }],
-        },
-      ],
       '/': [
         {
           text: 'Start here',
@@ -63,6 +57,7 @@ export default defineConfig({
             { text: 'Getting started', link: '/guide/getting-started' },
             { text: 'Capabilities', link: '/capabilities' },
             { text: 'Security', link: '/security' },
+            { text: 'Roadmap', link: '/ROADMAP' },
           ],
         },
       ],
