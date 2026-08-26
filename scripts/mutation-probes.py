@@ -30,6 +30,13 @@ PROBES = [
         ["test", "--test", "archive", "semantic_validation_reports_missing_payloads_unknown_models_and_short_links", "--", "--exact"],
     ),
     (
+        "link-model-distinctness",
+        "openbim-mmc/src/validation.rs",
+        "if distinct_models.len() < 2 {",
+        "if false {",
+        ["test", "--test", "schema", "reports_links_that_do_not_span_two_application_models", "--", "--exact"],
+    ),
+    (
         "namespace-exactness",
         "openbim-mmc/src/xml.rs",
         "Ok(namespace.as_ref() == expected.as_bytes())",

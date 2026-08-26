@@ -36,7 +36,7 @@ Ship a public, production-safe pure-Rust `openbim-mmc` crate for MMC 2.0 archive
 
 ## Milestone status
 
-Core implementation and the first independent-review fixes are complete. The clean exact tree passes the Rust 1.88.0 gate, 36 tests, strict Clippy, rustdoc, package allowlisting/verification, seven mutation probes, and an extracted-package consumer. A builder-generated sample validates against both public MMC 2.0 XSDs without vendoring them. Documentation explicitly avoids claiming complete conformance with every DIN edition.
+Core implementation and the first independent-review fixes are complete. The clean exact tree passes the Rust 1.88.0 gate, 37 tests, strict Clippy, rustdoc, package allowlisting/verification, eight mutation probes, and an extracted-package consumer. A builder-generated sample validates against both public MMC 2.0 XSDs without vendoring them. Documentation explicitly avoids claiming complete conformance with every DIN edition.
 
 ## Next action
 

@@ -32,6 +32,7 @@ pub enum ValidationCode {
     MissingRepresentationDisambiguator,
     MissingResourceDisambiguator,
     LinkHasTooFewRelata,
+    LinkHasTooFewModels,
     RateTargetsUnknownModel,
 }
 
@@ -261,6 +262,18 @@ pub(crate) fn validate(archive: &MmcArchive) -> ValidationReport {
                     ValidationCode::LinkHasTooFewRelata,
                     &location,
                     "Link requires at least two Relatum elements",
+                );
+            }
+            let distinct_models = link
+                .relata
+                .iter()
+                .map(|relatum| relatum.model_id.as_str())
+                .collect::<HashSet<_>>();
+            if distinct_models.len() < 2 {
+                report.push(
+                    ValidationCode::LinkHasTooFewModels,
+                    &location,
+                    "Link requires relata from at least two application models",
                 );
             }
             for (relatum_index, relatum) in link.relata.iter().enumerate() {

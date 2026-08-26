@@ -49,3 +49,18 @@ fn reports_duplicate_metadata_keys_within_a_category() {
     let report = MmcArchive::parse(&bytes).unwrap().validate();
     assert!(report.contains(ValidationCode::DuplicateMetadataKey));
 }
+
+#[test]
+fn reports_links_that_do_not_span_two_application_models() {
+    let index = common::valid_multimodel("links/elements.xml", "models/model.ifc");
+    let links = String::from_utf8(common::valid_link_model())
+        .unwrap()
+        .replace("m=\"model-gaeb\"", "m=\"model-ifc\"");
+    let bytes = common::zip(&[
+        ("MultiModel.xml", index.as_slice()),
+        ("models/model.ifc", b"IFC"),
+        ("links/elements.xml", links.as_bytes()),
+    ]);
+    let report = MmcArchive::parse(&bytes).unwrap().validate();
+    assert!(report.contains(ValidationCode::LinkHasTooFewModels));
+}
