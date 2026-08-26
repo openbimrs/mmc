@@ -171,3 +171,63 @@ fn builder_omits_the_optional_link_models_collection_when_empty() {
     let xml = std::str::from_utf8(archive.container().source_bytes()).unwrap();
     assert!(!xml.contains("LinkModels"));
 }
+
+/// Regression for an independent-review finding: XML 1.0 attribute-value
+/// normalization (§3.3.3) collapses literal TAB/LF/CR in attribute values to a
+/// single space in every conformant consumer, while this crate's own parser
+/// retained the literal bytes and therefore could not detect the corruption.
+/// The writer must numeric-escape those controls so external XML processors
+/// see the exact bytes the caller supplied.
+#[test]
+fn control_characters_in_attribute_values_survive_external_normalization() {
+    let mut builder = MmcArchiveBuilder::new(ContainerMetadata {
+        metadata: vec![MetadataEntry {
+            key: "controls".to_owned(),
+            value: "A\tB\nC\rD".to_owned(),
+            ..MetadataEntry::default()
+        }],
+        ..ContainerMetadata::default()
+    });
+    builder
+        .add_application_model(ApplicationModel {
+            id: "model".to_owned(),
+            model_type: "opaque".to_owned(),
+            representations: vec![ModelData {
+                id: "representation".to_owned(),
+                format_type: "opaque".to_owned(),
+                resources: vec![DataResource {
+                    id: "resource".to_owned(),
+                    location: ResourceLocation::External(
+                        "https://example.test/model.bin".to_owned(),
+                    ),
+                    ..DataResource::default()
+                }],
+                ..ModelData::default()
+            }],
+            ..ApplicationModel::default()
+        })
+        .unwrap();
+    let archive = builder.build().unwrap();
+
+    // This crate's own parser must round-trip the literal value.
+    assert_eq!(archive.container().metadata.metadata[0].value, "A\tB\nC\rD");
+
+    // The serialized attribute must not contain literal control bytes: an
+    // external XML 1.0 parser normalizes those to spaces, which would silently
+    // change the value. Numeric character references are exempt from that
+    // normalization and must be used instead.
+    let xml = std::str::from_utf8(archive.container().source_bytes()).unwrap();
+    let attribute_line = xml
+        .lines()
+        .find(|line| line.contains("value=\""))
+        .expect("metadata value attribute is present");
+    assert!(
+        !attribute_line.contains('\t')
+            && !attribute_line.contains('\n')
+            && !attribute_line.contains('\r'),
+        "attribute line contains a literal control character: {attribute_line:?}"
+    );
+    assert!(attribute_line.contains("&#x9;"));
+    assert!(attribute_line.contains("&#xA;"));
+    assert!(attribute_line.contains("&#xD;"));
+}

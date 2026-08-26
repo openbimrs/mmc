@@ -275,10 +275,8 @@ impl MmcArchive {
 
     pub fn read_from_with_limits(mut reader: impl Read, limits: Limits) -> Result<Self, MmcError> {
         let mut bytes = Vec::new();
-        reader
-            .by_ref()
-            .take(limits.max_archive_bytes as u64 + 1)
-            .read_to_end(&mut bytes)?;
+        let read_budget = (limits.max_archive_bytes as u64).saturating_add(1);
+        reader.by_ref().take(read_budget).read_to_end(&mut bytes)?;
         Self::parse_with_limits(bytes, limits)
     }
 

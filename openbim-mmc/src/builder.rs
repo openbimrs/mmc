@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, io::Cursor};
 
 use quick_xml::{
-    events::{BytesDecl, BytesEnd, BytesStart, BytesText, Event},
+    events::{attributes::Attribute, BytesDecl, BytesEnd, BytesStart, BytesText, Event},
     Writer,
 };
 use zip::{write::SimpleFileOptions, CompressionMethod, ZipWriter};
@@ -119,6 +119,36 @@ impl MmcArchiveBuilder {
     }
 }
 
+/// Builds an attribute whose value is XML-escaped and additionally numeric-escapes
+/// TAB/LF/CR. XML 1.0 attribute-value normalization (§3.3.3) replaces *literal*
+/// TAB/LF/CR in attribute values with a single space in every conformant parser;
+/// character references are exempt from that normalization. Escaping them here
+/// keeps values produced by this crate byte-identical after a parse/write/reparse
+/// round trip through any standards-compliant XML consumer.
+fn attr(name: &'static str, value: &str) -> Attribute<'static> {
+    let escaped = quick_xml::escape::escape(value)
+        .replace('\t', "&#x9;")
+        .replace('\n', "&#xA;")
+        .replace('\r', "&#xD;");
+    Attribute {
+        key: quick_xml::name::QName(name.as_bytes()),
+        value: std::borrow::Cow::Owned(escaped.into_bytes()),
+    }
+}
+
+/// Builds a text event whose value numeric-escapes carriage returns. XML 1.0
+/// line-end normalization (§2.11) rewrites every literal CR (bare or as part
+/// of CRLF) in the source into a single LF before an XML processor ever sees
+/// character data — the CR is not merely translated, a bare "\r\n" collapses
+/// to one "\n". Escaping "\r" here keeps `LinkedModel` text byte-identical
+/// after a parse/write/reparse round trip through any standards-compliant
+/// XML consumer. `\n` and `\t` are left as literal text: neither is
+/// normalized outside of attribute values.
+fn text_normalizing_cr(value: &str) -> BytesText<'static> {
+    let escaped = quick_xml::escape::escape(value).replace('\r', "&#xD;");
+    BytesText::from_escaped(escaped)
+}
+
 fn serialize_multimodel(
     metadata: &ContainerMetadata,
     models: &[ApplicationModel],
@@ -129,10 +159,10 @@ fn serialize_multimodel(
     let mut root = BytesStart::new("mmc:MultiModel");
     root.push_attribute(("xmlns:mmc", MMC_NAMESPACE));
     let uuid = metadata.uuid.to_string();
-    root.push_attribute(("uuid", uuid.as_str()));
-    root.push_attribute(("formatVersion", metadata.format_version.as_str()));
+    root.push_attribute(attr("uuid", uuid.as_str()));
+    root.push_attribute(attr("formatVersion", metadata.format_version.as_str()));
     if let Some(domain) = &metadata.mm_domain {
-        root.push_attribute(("mmDomain", domain.as_str()));
+        root.push_attribute(attr("mmDomain", domain.as_str()));
     }
     writer.write_event(Event::Start(root))?;
     write_metadata(&mut writer, "mmc", &metadata.metadata, false)?;
@@ -140,25 +170,25 @@ fn serialize_multimodel(
     writer.write_event(Event::Start(BytesStart::new("mmc:ApplicationModels")))?;
     for model in models {
         let mut element = BytesStart::new("mmc:ApplicationModel");
-        element.push_attribute(("id", model.id.as_str()));
-        element.push_attribute(("modelType", model.model_type.as_str()));
+        element.push_attribute(attr("id", model.id.as_str()));
+        element.push_attribute(attr("modelType", model.model_type.as_str()));
         writer.write_event(Event::Start(element))?;
         write_metadata(&mut writer, "mmc", &model.metadata, false)?;
         for representation in &model.representations {
             let mut element = BytesStart::new("mmc:ModelData");
-            element.push_attribute(("id", representation.id.as_str()));
-            element.push_attribute(("formatType", representation.format_type.as_str()));
+            element.push_attribute(attr("id", representation.id.as_str()));
+            element.push_attribute(attr("formatType", representation.format_type.as_str()));
             if let Some(version) = &representation.format_version {
-                element.push_attribute(("formatVersion", version.as_str()));
+                element.push_attribute(attr("formatVersion", version.as_str()));
             }
             writer.write_event(Event::Start(element))?;
             write_metadata(&mut writer, "mmc", &representation.metadata, false)?;
             for resource in &representation.resources {
                 let mut element = BytesStart::new("mmc:DataRessource");
-                element.push_attribute(("id", resource.id.as_str()));
+                element.push_attribute(attr("id", resource.id.as_str()));
                 match &resource.location {
                     ResourceLocation::Embedded(path) | ResourceLocation::External(path) => {
-                        element.push_attribute(("location", path.as_str()));
+                        element.push_attribute(attr("location", path.as_str()));
                     }
                 }
                 if resource.metadata.is_empty() {
@@ -181,14 +211,14 @@ fn serialize_multimodel(
             let mut element = BytesStart::new("mmc:LinkModel");
             match &reference.location {
                 ResourceLocation::Embedded(path) | ResourceLocation::External(path) => {
-                    element.push_attribute(("location", path.as_str()));
+                    element.push_attribute(attr("location", path.as_str()));
                 }
             }
             writer.write_event(Event::Start(element))?;
             write_metadata(&mut writer, "mmc", &reference.metadata, false)?;
             for model in &reference.linked_models {
                 writer.write_event(Event::Start(BytesStart::new("mmc:LinkedModel")))?;
-                writer.write_event(Event::Text(BytesText::new(model)))?;
+                writer.write_event(Event::Text(text_normalizing_cr(model)))?;
                 writer.write_event(Event::End(BytesEnd::new("mmc:LinkedModel")))?;
             }
             writer.write_event(Event::End(BytesEnd::new("mmc:LinkModel")))?;
@@ -204,7 +234,7 @@ fn serialize_link_model(model: &LinkModel) -> Result<Vec<u8>, MmcError> {
     writer.write_event(Event::Decl(BytesDecl::new("1.0", Some("UTF-8"), None)))?;
     let mut root = BytesStart::new("link:LinkModel");
     root.push_attribute(("xmlns:link", LINK_MODEL_NAMESPACE));
-    root.push_attribute(("formatVersion", model.format_version.as_str()));
+    root.push_attribute(attr("formatVersion", model.format_version.as_str()));
     writer.write_event(Event::Start(root))?;
     write_metadata(&mut writer, "link", &model.metadata, true)?;
     for link in &model.links {
@@ -212,13 +242,13 @@ fn serialize_link_model(model: &LinkModel) -> Result<Vec<u8>, MmcError> {
         write_metadata(&mut writer, "link", &link.metadata, true)?;
         for relatum in &link.relata {
             let mut element = BytesStart::new("link:Relatum");
-            element.push_attribute(("id", relatum.element_id.as_str()));
-            element.push_attribute(("m", relatum.model_id.as_str()));
+            element.push_attribute(attr("id", relatum.element_id.as_str()));
+            element.push_attribute(attr("m", relatum.model_id.as_str()));
             if let Some(format_id) = &relatum.format_id {
-                element.push_attribute(("f", format_id.as_str()));
+                element.push_attribute(attr("f", format_id.as_str()));
             }
             if let Some(resource_id) = &relatum.resource_id {
-                element.push_attribute(("r", resource_id.as_str()));
+                element.push_attribute(attr("r", resource_id.as_str()));
             }
             if relatum.metadata.is_empty() && relatum.rates.is_empty() {
                 writer.write_event(Event::Empty(element))?;
@@ -227,9 +257,9 @@ fn serialize_link_model(model: &LinkModel) -> Result<Vec<u8>, MmcError> {
                 write_metadata(&mut writer, "link", &relatum.metadata, true)?;
                 for rate in &relatum.rates {
                     let mut rate_element = BytesStart::new("link:Rate");
-                    rate_element.push_attribute(("t", rate.rate_type.as_str()));
-                    rate_element.push_attribute(("v", rate.value.as_str()));
-                    rate_element.push_attribute(("m", rate.target_model.as_str()));
+                    rate_element.push_attribute(attr("t", rate.rate_type.as_str()));
+                    rate_element.push_attribute(attr("v", rate.value.as_str()));
+                    rate_element.push_attribute(attr("m", rate.target_model.as_str()));
                     writer.write_event(Event::Empty(rate_element))?;
                 }
                 writer.write_event(Event::End(BytesEnd::new("link:Relatum")))?;
@@ -260,13 +290,13 @@ fn write_metadata(
         } else {
             ("key", "value", "type", "category")
         };
-        element.push_attribute((key, item.key.as_str()));
-        element.push_attribute((value, item.value.as_str()));
+        element.push_attribute(attr(key, item.key.as_str()));
+        element.push_attribute(attr(value, item.value.as_str()));
         if let Some(kind) = &item.value_type {
-            element.push_attribute((value_type, kind.as_str()));
+            element.push_attribute(attr(value_type, kind.as_str()));
         }
         if let Some(group) = &item.category {
-            element.push_attribute((category, group.as_str()));
+            element.push_attribute(attr(category, group.as_str()));
         }
         writer.write_event(Event::Empty(element))?;
     }

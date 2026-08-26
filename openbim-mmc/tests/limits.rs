@@ -99,3 +99,16 @@ fn rejects_forged_uncompressed_sizes_using_actual_output_budgets() {
         },
     ));
 }
+
+#[test]
+fn reading_from_a_stream_never_overflows_at_the_max_archive_bytes_limit() {
+    let bytes = common::valid_archive();
+    let result = MmcArchive::read_from_with_limits(
+        bytes.as_slice(),
+        Limits {
+            max_archive_bytes: usize::MAX,
+            ..Limits::default()
+        },
+    );
+    assert!(result.is_ok());
+}

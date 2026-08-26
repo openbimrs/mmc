@@ -102,14 +102,14 @@ PROBES = [
     (
         "multimodel-content-after-root",
         "openbim-mmc/src/xml.rs",
-        "if stack.is_empty() && !decoded.trim().is_empty() {\n                    return Err(xml_message(\n                        \"MultiModel.xml\",",
+        "if stack.is_empty() && !is_xml_whitespace_text(text.as_ref()) {\n                    return Err(xml_message(\n                        \"MultiModel.xml\",",
         "if false {\n                    return Err(xml_message(\n                        \"MultiModel.xml\",",
         ["test", "--test", "conformance", "rejects_content_outside_the_single_document_root", "--", "--exact"],
     ),
     (
         "link-model-content-after-root",
         "openbim-mmc/src/xml.rs",
-        "if stack.is_empty() && !decoded.trim().is_empty() {\n                    return Err(xml_message(\n                        path,",
+        "if stack.is_empty() && !is_xml_whitespace_text(text.as_ref()) {\n                    return Err(xml_message(\n                        path,",
         "if false {\n                    return Err(xml_message(\n                        path,",
         ["test", "--test", "conformance", "rejects_content_outside_the_single_document_root", "--", "--exact"],
     ),
@@ -126,6 +126,27 @@ PROBES = [
         "Event::Decl(_) if events != 1 => {\n                return Err(xml_message(\n                    path,",
         "Event::Decl(_) if false => {\n                return Err(xml_message(\n                    path,",
         ["test", "--test", "conformance", "rejects_content_outside_the_single_document_root", "--", "--exact"],
+    ),
+    (
+        "attribute-value-control-escape",
+        "openbim-mmc/src/builder.rs",
+        ".replace('\\t', \"&#x9;\")\n        .replace('\\n', \"&#xA;\")\n        .replace('\\r', \"&#xD;\");",
+        ";",
+        ["test", "--test", "builder", "control_characters_in_attribute_values_survive_external_normalization", "--", "--exact"],
+    ),
+    (
+        "linked-model-text-cr-escape",
+        "openbim-mmc/src/builder.rs",
+        "let escaped = quick_xml::escape::escape(value).replace('\\r', \"&#xD;\");",
+        "let escaped = quick_xml::escape::escape(value);",
+        ["test", "--test", "conformance", "linked_model_text_resolves_numeric_entity_references", "--", "--exact"],
+    ),
+    (
+        "archive-read-budget-overflow",
+        "openbim-mmc/src/archive.rs",
+        "let read_budget = (limits.max_archive_bytes as u64).saturating_add(1);",
+        "let read_budget = (limits.max_archive_bytes as u64) + 1;",
+        ["test", "--test", "limits", "reading_from_a_stream_never_overflows_at_the_max_archive_bytes_limit", "--", "--exact"],
     ),
 ]
 

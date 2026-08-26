@@ -118,7 +118,7 @@ pub(crate) fn parse_multimodel(source: &[u8], limits: Limits) -> Result<MultiMod
                         "text resolves to a character forbidden by XML 1.0",
                     ));
                 }
-                if stack.is_empty() && !decoded.trim().is_empty() {
+                if stack.is_empty() && !is_xml_whitespace_text(text.as_ref()) {
                     return Err(xml_message(
                         "MultiModel.xml",
                         "character content outside the document root",
@@ -357,7 +357,7 @@ pub(crate) fn parse_link_model(
                         "text resolves to a character forbidden by XML 1.0",
                     ));
                 }
-                if stack.is_empty() && !decoded.trim().is_empty() {
+                if stack.is_empty() && !is_xml_whitespace_text(text.as_ref()) {
                     return Err(xml_message(
                         path,
                         "character content outside the document root",
@@ -722,6 +722,14 @@ fn check_xml_size(path: &str, source: &[u8], limits: Limits) -> Result<(), MmcEr
         ));
     }
     Ok(())
+}
+
+fn is_xml_whitespace_text(bytes: &[u8]) -> bool {
+    std::str::from_utf8(bytes).is_ok_and(|text| text.chars().all(is_xml_whitespace))
+}
+
+fn is_xml_whitespace(character: char) -> bool {
+    matches!(character, '\u{20}' | '\u{9}' | '\u{a}' | '\u{d}')
 }
 
 fn is_xml_char(character: char) -> bool {

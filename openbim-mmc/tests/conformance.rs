@@ -151,10 +151,14 @@ fn rejects_content_outside_the_single_document_root() {
         "garbage",
         "<x:extra xmlns:x=\"urn:extension\"/>",
         "<?xml version=\"1.0\"?>",
+        "\u{00a0}",
+        "\u{0085}",
+        "\u{2003}",
     ] {
         let malformed = format!("{index}{trailing}");
         assert!(
-            MmcArchive::parse(common::zip(&[("MultiModel.xml", malformed.as_bytes(),)])).is_err()
+            MmcArchive::parse(common::zip(&[("MultiModel.xml", malformed.as_bytes())])).is_err(),
+            "accepted trailing MultiModel content {trailing:?}"
         );
     }
 
@@ -163,12 +167,18 @@ fn rejects_content_outside_the_single_document_root() {
         "garbage",
         "<x:extra xmlns:x=\"urn:extension\"/>",
         "<?xml version=\"1.0\"?>",
+        "\u{00a0}",
+        "\u{0085}",
+        "\u{2003}",
     ] {
         let link = format!("{valid_link}{trailing}");
         let archive = common::zip(&[
             ("MultiModel.xml", index.as_bytes()),
             ("links/elements.xml", link.as_bytes()),
         ]);
-        assert!(MmcArchive::parse(archive).is_err());
+        assert!(
+            MmcArchive::parse(archive).is_err(),
+            "accepted trailing LinkModel content {trailing:?}"
+        );
     }
 }
