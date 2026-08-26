@@ -146,7 +146,7 @@ pub(crate) fn parse_multimodel(source: &[u8], limits: Limits) -> Result<MultiMod
                 if path_ends(&stack, &["LinkModel", "LinkedModel"]) {
                     let value = linked_model_text.take().unwrap_or_default();
                     if let Some(reference) = link_models.last_mut() {
-                        reference.linked_models.push(value.trim().to_owned());
+                        reference.linked_models.push(value);
                     }
                 }
                 stack.pop();

@@ -36,7 +36,7 @@ Ship a public, production-safe pure-Rust `openbim-mmc` crate for MMC 2.0 archive
 
 ## Milestone status
 
-Core implementation, security hardening, and independent-review fixes are complete and landed publicly. A delayed exact-tree review of `c280ec7` exposed three additional release blockers; all were reproduced before correction: truncated XML acceptance, schema-invalid empty `LinkModels`, and dropped XML entity references in `LinkedModel` text. The current candidate fixes those defects and rejects non-whitespace or extra elements outside the single XML document root, with 42 tests and 14 mutation probes. Documentation explicitly avoids claiming complete conformance with every DIN edition.
+Core implementation, security hardening, and independent-review fixes are complete and landed publicly. A delayed exact-tree review of `c280ec7` exposed three additional release blockers; all were reproduced before correction: truncated XML acceptance, schema-invalid empty `LinkModels`, and dropped XML entity references in `LinkedModel` text. The current candidate fixes those defects, preserves `xs:string` whitespace in linked-model identifiers, and rejects non-whitespace or extra elements outside the single XML document root, with 42 tests and 15 mutation probes. Documentation explicitly avoids claiming complete conformance with every DIN edition.
 
 ## Next action
 

@@ -131,6 +131,13 @@ fn linked_model_text_resolves_numeric_entity_references() {
 
     let unknown = index.replace("model&#x2D;ifc", "model&custom;ifc");
     assert!(MmcArchive::parse(common::zip(&[("MultiModel.xml", unknown.as_bytes(),)])).is_err());
+
+    let padded = index.replace("model&#x2D;ifc", "&#x20;model&#x2D;ifc&#x20;");
+    let archive = MmcArchive::parse(common::zip(&[("MultiModel.xml", padded.as_bytes())])).unwrap();
+    assert_eq!(
+        archive.container().link_models[0].linked_models[0],
+        " model-ifc "
+    );
 }
 
 #[test]

@@ -86,6 +86,13 @@ PROBES = [
         ["test", "--test", "conformance", "linked_model_text_resolves_numeric_entity_references", "--", "--exact"],
     ),
     (
+        "linked-model-xs-string-whitespace",
+        "openbim-mmc/src/xml.rs",
+        "reference.linked_models.push(value);",
+        "reference.linked_models.push(value.trim().to_owned());",
+        ["test", "--test", "conformance", "linked_model_text_resolves_numeric_entity_references", "--", "--exact"],
+    ),
+    (
         "empty-link-models-container",
         "openbim-mmc/src/builder.rs",
         "if !link_models.is_empty() {",
