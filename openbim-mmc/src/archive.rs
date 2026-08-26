@@ -153,11 +153,44 @@ impl MmcArchive {
                 });
             }
 
-            let mut payload = Vec::with_capacity(declared as usize);
+            // Bound the read itself, not only the post-read check. This keeps a forged
+            // central-directory size from making transient memory exceed either the
+            // per-entry, aggregate-output, or measured archive-ratio budget.
+            let total_remaining = limits
+                .max_total_uncompressed_bytes
+                .saturating_sub(actual_total as usize);
+            let ratio_total = ((bytes.len() as u128) * (limits.max_compression_ratio as u128))
+                .min(usize::MAX as u128) as usize;
+            let ratio_remaining = ratio_total.saturating_sub(actual_total as usize);
+            let read_budget = limits
+                .max_entry_bytes
+                .min(total_remaining)
+                .min(ratio_remaining);
+            let mut payload = Vec::with_capacity((declared as usize).min(read_budget));
             file.by_ref()
-                .take(limits.max_entry_bytes as u64 + 1)
+                .take((read_budget as u64).saturating_add(1))
                 .read_to_end(&mut payload)?;
-            if payload.len() > limits.max_entry_bytes {
+            if payload.len() > read_budget {
+                if total_remaining <= limits.max_entry_bytes && total_remaining <= ratio_remaining {
+                    return Err(MmcError::LimitExceeded {
+                        resource: "total uncompressed bytes",
+                        actual: actual_total.saturating_add(payload.len() as u64),
+                        maximum: limits.max_total_uncompressed_bytes as u64,
+                    });
+                }
+                if ratio_remaining < limits.max_entry_bytes {
+                    let denominator = bytes.len().max(1) as u64;
+                    let actual_bytes = actual_total.saturating_add(payload.len() as u64);
+                    let actual_ratio = actual_bytes
+                        .saturating_add(denominator - 1)
+                        .checked_div(denominator)
+                        .unwrap_or(u64::MAX);
+                    return Err(MmcError::LimitExceeded {
+                        resource: "actual archive compression ratio",
+                        actual: actual_ratio,
+                        maximum: limits.max_compression_ratio as u64,
+                    });
+                }
                 return Err(MmcError::LimitExceeded {
                     resource: "entry bytes",
                     actual: payload.len() as u64,
@@ -172,22 +205,6 @@ impl MmcArchive {
                         actual: u64::MAX,
                         maximum: limits.max_total_uncompressed_bytes as u64,
                     })?;
-            if actual_total > limits.max_total_uncompressed_bytes as u64 {
-                return Err(MmcError::LimitExceeded {
-                    resource: "total uncompressed bytes",
-                    actual: actual_total,
-                    maximum: limits.max_total_uncompressed_bytes as u64,
-                });
-            }
-            if (actual_total as u128)
-                > (bytes.len() as u128) * (limits.max_compression_ratio as u128)
-            {
-                return Err(MmcError::LimitExceeded {
-                    resource: "actual archive compression ratio",
-                    actual: actual_total / (bytes.len() as u64).max(1),
-                    maximum: limits.max_compression_ratio as u64,
-                });
-            }
             if payload.len() as u64 != declared {
                 return Err(MmcError::InvalidZipMetadata {
                     path: name,

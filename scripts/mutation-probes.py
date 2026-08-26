@@ -46,15 +46,15 @@ PROBES = [
     (
         "actual-uncompressed-total",
         "openbim-mmc/src/archive.rs",
-        "if actual_total > limits.max_total_uncompressed_bytes as u64 {",
-        "if false {",
+        ".min(total_remaining)",
+        ".min(usize::MAX)",
         ["test", "--test", "limits", "rejects_forged_uncompressed_sizes_using_actual_output_budgets", "--", "--exact"],
     ),
     (
         "actual-compression-ratio",
         "openbim-mmc/src/archive.rs",
-        "> (bytes.len() as u128) * (limits.max_compression_ratio as u128)",
-        "> (bytes.len() as u128) * (limits.max_compression_ratio as u128) * 10_000_000",
+        "let ratio_total = ((bytes.len() as u128) * (limits.max_compression_ratio as u128))",
+        "let ratio_total = ((bytes.len() as u128) * (limits.max_compression_ratio as u128) * 10_000_000)",
         ["test", "--test", "limits", "rejects_forged_uncompressed_sizes_using_actual_output_budgets", "--", "--exact"],
     ),
     (
