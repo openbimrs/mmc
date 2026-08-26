@@ -9,7 +9,7 @@ fn builds_a_new_mmc_with_escaped_metadata_and_round_trips() {
     let metadata = ContainerMetadata {
         uuid: Uuid::parse_str("4d69a342-31b6-4e80-9d05-83a28754c84d").unwrap(),
         format_version: "2.0.0".to_owned(),
-        mm_domain: "urn:din:18290:lv".to_owned(),
+        mm_domain: Some("urn:din:18290:lv".to_owned()),
         metadata: vec![MetadataEntry {
             key: "project".to_owned(),
             value: "P<&\"1".to_owned(),
@@ -102,6 +102,9 @@ fn builds_a_new_mmc_with_escaped_metadata_and_round_trips() {
         "{:?}",
         archive.validate().issues()
     );
+    let link_xml = std::str::from_utf8(archive.parsed_link_models()[0].source_bytes()).unwrap();
+    assert!(link_xml.contains("<link:Rate t=\"confidence\" v=\"1.0\" m=\"model-ifc\"/>"));
+    assert!(!link_xml.contains("<link:Rates"));
     assert_eq!(archive.container().metadata.metadata[0].value, "P<&\"1");
     assert_eq!(
         archive.parsed_link_models()[0].model().metadata[0].value,

@@ -281,7 +281,9 @@ impl MmcArchive {
         Ok(output.into_inner())
     }
 
-    /// Safely extract entries with new-file semantics and no symlink traversal.
+    /// Safely extract entries with new-file semantics and no pre-existing symlink traversal.
+    ///
+    /// The caller must prevent concurrent mutation of the destination tree while extraction runs.
     pub fn extract_to(&self, root: impl AsRef<Path>) -> Result<(), MmcError> {
         let root = root.as_ref();
         let total = self

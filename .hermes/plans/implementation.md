@@ -34,6 +34,10 @@ Ship a public, production-safe pure-Rust `openbim-mmc` crate for DIN 18290-1 / M
 - External absolute URIs are represented but never fetched.
 - Core is metadata/link aware but never parses GAEB or IFC payloads.
 
+## Milestone status
+
+Core implementation is complete. Rust 1.88.0 gate, 35 tests, strict Clippy, rustdoc, package allowlist, package verification, four mutation probes, and an extracted-package consumer pass. A builder-generated sample validates against both public MMC 2.0 XSDs without vendoring them.
+
 ## Next action
 
-Write failing integration tests for archive admission, typed views, links, extraction, and deterministic writing.
+Resolve independent exact-tree review findings, rerun the gate, push `main`, and verify a clean public clone.

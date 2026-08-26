@@ -131,7 +131,9 @@ fn serialize_multimodel(
     let uuid = metadata.uuid.to_string();
     root.push_attribute(("uuid", uuid.as_str()));
     root.push_attribute(("formatVersion", metadata.format_version.as_str()));
-    root.push_attribute(("mmDomain", metadata.mm_domain.as_str()));
+    if let Some(domain) = &metadata.mm_domain {
+        root.push_attribute(("mmDomain", domain.as_str()));
+    }
     writer.write_event(Event::Start(root))?;
     write_metadata(&mut writer, "mmc", &metadata.metadata, false)?;
 
@@ -221,16 +223,12 @@ fn serialize_link_model(model: &LinkModel) -> Result<Vec<u8>, MmcError> {
             } else {
                 writer.write_event(Event::Start(element))?;
                 write_metadata(&mut writer, "link", &relatum.metadata, true)?;
-                if !relatum.rates.is_empty() {
-                    writer.write_event(Event::Start(BytesStart::new("link:Rates")))?;
-                    for rate in &relatum.rates {
-                        let mut rate_element = BytesStart::new("link:Rate");
-                        rate_element.push_attribute(("type", rate.rate_type.as_str()));
-                        rate_element.push_attribute(("value", rate.value.as_str()));
-                        rate_element.push_attribute(("targetModel", rate.target_model.as_str()));
-                        writer.write_event(Event::Empty(rate_element))?;
-                    }
-                    writer.write_event(Event::End(BytesEnd::new("link:Rates")))?;
+                for rate in &relatum.rates {
+                    let mut rate_element = BytesStart::new("link:Rate");
+                    rate_element.push_attribute(("t", rate.rate_type.as_str()));
+                    rate_element.push_attribute(("v", rate.value.as_str()));
+                    rate_element.push_attribute(("m", rate.target_model.as_str()));
+                    writer.write_event(Event::Empty(rate_element))?;
                 }
                 writer.write_event(Event::End(BytesEnd::new("link:Relatum")))?;
             }

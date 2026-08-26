@@ -15,7 +15,7 @@ Pure-Rust DIN 18290-1 / Multi-Model Container 2.0 mechanics.
 
 This repository owns only MMC 2.0 container mechanics. It does not implement ISO 21597 ICDD or parse IFC and GAEB payloads. DIN 18290 Parts 2–4 for LV, cost, and invoicing belong in optional domain crates built on `openbim-mmc`, `openbim-gaeb`, and canonical IFC.
 
-The crates.io name `mmc` is owned by an unrelated Minimal Model Collection crate, so this repository publishes only `openbim-mmc`. It does not ship a misleading alias.
+The crates.io name `mmc` is owned by an unrelated Minimal Model Collection crate. The canonical package is therefore `openbim-mmc`; this repository does not include a misleading alias crate.
 
 ## Use
 
@@ -36,7 +36,7 @@ archive.extract_to("out")?;
 
 ## Verification
 
-Run `scripts/gate.sh`. The gate pins Rust `1.88.0`, tests all targets, denies Clippy and rustdoc warnings, verifies the minimal feature build, and audits package contents. `scripts/mutation-probes.sh` proves critical tests detect weakened guards.
+Run `scripts/gate.sh`. The gate pins Rust `1.88.0`, tests all targets, denies Clippy and rustdoc warnings, verifies the minimal feature build, and audits package contents. `scripts/mutation-probes.py` proves critical tests detect weakened guards.
 
 See [ADR 0001](docs/adr/0001-format-boundary.md), the [roadmap](docs/ROADMAP.md), and the [changelog](CHANGELOG.md).
 

@@ -53,6 +53,23 @@ fn requires_one_exact_root_multimodel_xml() {
 }
 
 #[test]
+fn rejects_xml_1_0_forbidden_characters() {
+    let valid = String::from_utf8(common::valid_multimodel(
+        "links/elements.xml",
+        "models/model.ifc",
+    ))
+    .unwrap();
+    for value in ["IF\0C", "IF&#0;C"] {
+        let xml = valid.replace("modelType=\"IFC\"", &format!("modelType=\"{value}\""));
+        let bytes = common::zip(&[("MultiModel.xml", xml.as_bytes())]);
+        assert!(matches!(
+            MmcArchive::parse(&bytes),
+            Err(MmcError::Xml { .. })
+        ));
+    }
+}
+
+#[test]
 fn rejects_symbolic_link_zip_entries() {
     let bytes = common::zip_with_mode("link", b"MultiModel.xml", 0o120777);
     assert!(matches!(

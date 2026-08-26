@@ -14,7 +14,7 @@ pub struct MetadataEntry {
 pub struct ContainerMetadata {
     pub uuid: Uuid,
     pub format_version: String,
-    pub mm_domain: String,
+    pub mm_domain: Option<String>,
     pub metadata: Vec<MetadataEntry>,
 }
 
@@ -23,7 +23,7 @@ impl Default for ContainerMetadata {
         Self {
             uuid: Uuid::nil(),
             format_version: "2.0.0".to_owned(),
-            mm_domain: String::new(),
+            mm_domain: None,
             metadata: Vec::new(),
         }
     }

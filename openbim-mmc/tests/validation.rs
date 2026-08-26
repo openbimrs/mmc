@@ -21,7 +21,6 @@ fn reports_duplicate_ids_and_unsafe_or_invalid_locations() {
     let archive = MmcArchive::parse(&bytes).unwrap();
     let report = archive.validate();
     assert!(report.contains(ValidationCode::DuplicateModelId));
-    assert!(report.contains(ValidationCode::DuplicateXmlId));
     assert!(
         report
             .issues()
@@ -41,7 +40,7 @@ fn reports_unknown_representation_resource_and_rate_targets() {
         .replace("r=\"ifc-file\"", "r=\"missing-resource\"")
         .replace(
             "<l:Relatum m=\"model-gaeb\" id=\"item-1\"/>",
-            "<l:Relatum m=\"model-gaeb\" id=\"item-1\"><l:Rates><l:Rate type=\"weight\" value=\"1\" targetModel=\"missing-model\"/></l:Rates></l:Relatum>",
+            "<l:Relatum m=\"model-gaeb\" id=\"item-1\"><l:Rate t=\"weight\" v=\"1\" m=\"missing-model\"/></l:Relatum>",
         );
     let bytes = common::zip(&[
         ("MultiModel.xml", index.as_slice()),
@@ -55,7 +54,7 @@ fn reports_unknown_representation_resource_and_rate_targets() {
 }
 
 #[test]
-fn validates_global_xml_ids_and_unique_link_locations() {
+fn reports_duplicate_link_locations() {
     let raw = String::from_utf8(common::valid_multimodel(
         "links/elements.xml",
         "models/model.ifc",
@@ -73,6 +72,5 @@ fn validates_global_xml_ids_and_unique_link_locations() {
         ("links/elements.xml", links.as_slice()),
     ]);
     let report = MmcArchive::parse(&bytes).unwrap().validate();
-    assert!(report.contains(ValidationCode::InvalidXmlId));
     assert!(report.contains(ValidationCode::DuplicateLinkModelLocation));
 }

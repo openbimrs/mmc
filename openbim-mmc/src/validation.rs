@@ -2,22 +2,25 @@ use std::collections::{HashMap, HashSet};
 
 use iri_string::types::IriReferenceStr;
 
-use crate::{path::validate_archive_path, MmcArchive, ResourceLocation};
+use crate::{
+    path::validate_archive_path, ApplicationModel, MetadataEntry, MmcArchive, Relatum,
+    ResourceLocation,
+};
 
 /// Stable machine-readable conformance issue codes.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[non_exhaustive]
 pub enum ValidationCode {
+    UnsupportedFormatVersion,
     TooFewApplicationModels,
-    MissingLinkModels,
     ApplicationModelMissingRepresentation,
     ModelDataMissingResource,
     LinkModelHasNoLinks,
     DuplicateModelId,
     DuplicateRepresentationId,
     DuplicateResourceId,
-    InvalidXmlId,
-    DuplicateXmlId,
+    DuplicateMetadataKey,
+
     DuplicateLinkModelLocation,
     InvalidResourceLocation,
     MissingEmbeddedResource,
@@ -26,6 +29,8 @@ pub enum ValidationCode {
     UnknownModelReference,
     UnknownRepresentationReference,
     UnknownResourceReference,
+    MissingRepresentationDisambiguator,
+    MissingResourceDisambiguator,
     LinkHasTooFewRelata,
     RateTargetsUnknownModel,
 }
@@ -77,35 +82,41 @@ impl ValidationReport {
 pub(crate) fn validate(archive: &MmcArchive) -> ValidationReport {
     let container = archive.container();
     let mut report = ValidationReport::default();
-    if IriReferenceStr::new(&container.metadata.mm_domain).is_err() {
+    validate_metadata(
+        &container.metadata.metadata,
+        "MultiModel.xml/MetaData",
+        &mut report,
+    );
+    if container.metadata.format_version != "2.0.0" {
         report.push(
-            ValidationCode::InvalidResourceLocation,
-            "MultiModel.xml@mmDomain",
-            "mmDomain is not a valid IRI reference",
+            ValidationCode::UnsupportedFormatVersion,
+            "MultiModel.xml@formatVersion",
+            "MMC 2.0 namespace requires formatVersion 2.0.0",
         );
     }
-    if container.models.len() < 2 {
+    if let Some(domain) = &container.metadata.mm_domain {
+        if IriReferenceStr::new(domain).is_err() {
+            report.push(
+                ValidationCode::InvalidResourceLocation,
+                "MultiModel.xml@mmDomain",
+                "mmDomain is not a valid IRI reference",
+            );
+        }
+    }
+    if container.models.is_empty() {
         report.push(
             ValidationCode::TooFewApplicationModels,
             "MultiModel.xml",
-            "MMC 2.0 requires at least two ApplicationModel declarations",
-        );
-    }
-    if container.link_models.is_empty() {
-        report.push(
-            ValidationCode::MissingLinkModels,
-            "MultiModel.xml",
-            "MMC 2.0 requires at least one LinkModel declaration",
+            "MMC 2.0 requires at least one ApplicationModel declaration",
         );
     }
 
     let mut model_ids = HashSet::new();
-    let mut xml_ids = HashSet::new();
-    let mut representations = HashMap::<&str, HashSet<&str>>::new();
-    let mut resources = HashMap::<(&str, &str), HashSet<&str>>::new();
+    let mut models_by_id = HashMap::new();
     for (model_index, model) in container.models.iter().enumerate() {
         let model_location = format!("ApplicationModel[{model_index}]");
-        validate_xml_id(&model.id, &model_location, &mut xml_ids, &mut report);
+        validate_metadata(&model.metadata, &model_location, &mut report);
+
         if !model_ids.insert(model.id.as_str()) {
             report.push(
                 ValidationCode::DuplicateModelId,
@@ -113,6 +124,7 @@ pub(crate) fn validate(archive: &MmcArchive) -> ValidationReport {
                 format!("duplicate application-model id {}", model.id),
             );
         }
+        models_by_id.entry(model.id.as_str()).or_insert(model);
         if model.representations.is_empty() {
             report.push(
                 ValidationCode::ApplicationModelMissingRepresentation,
@@ -123,7 +135,8 @@ pub(crate) fn validate(archive: &MmcArchive) -> ValidationReport {
         let mut representation_ids = HashSet::new();
         for (data_index, data) in model.representations.iter().enumerate() {
             let data_location = format!("{model_location}/ModelData[{data_index}]");
-            validate_xml_id(&data.id, &data_location, &mut xml_ids, &mut report);
+            validate_metadata(&data.metadata, &data_location, &mut report);
+
             if !representation_ids.insert(data.id.as_str()) {
                 report.push(
                     ValidationCode::DuplicateRepresentationId,
@@ -144,7 +157,8 @@ pub(crate) fn validate(archive: &MmcArchive) -> ValidationReport {
             let mut resource_ids = HashSet::new();
             for (resource_index, resource) in data.resources.iter().enumerate() {
                 let resource_location = format!("{data_location}/DataRessource[{resource_index}]");
-                validate_xml_id(&resource.id, &resource_location, &mut xml_ids, &mut report);
+                validate_metadata(&resource.metadata, &resource_location, &mut report);
+
                 if !resource_ids.insert(resource.id.as_str()) {
                     report.push(
                         ValidationCode::DuplicateResourceId,
@@ -163,14 +177,13 @@ pub(crate) fn validate(archive: &MmcArchive) -> ValidationReport {
                     &mut report,
                 );
             }
-            resources.insert((model.id.as_str(), data.id.as_str()), resource_ids);
         }
-        representations.insert(model.id.as_str(), representation_ids);
     }
 
     let mut link_locations = HashSet::new();
     for (reference_index, reference) in container.link_models.iter().enumerate() {
         let location = format!("LinkModel[{reference_index}]");
+        validate_metadata(&reference.metadata, &location, &mut report);
         let location_key = match &reference.location {
             ResourceLocation::Embedded(path) => format!("embedded:{path}"),
             ResourceLocation::External(uri) => format!("external:{uri}"),
@@ -202,7 +215,6 @@ pub(crate) fn validate(archive: &MmcArchive) -> ValidationReport {
             );
         }
         for model_id in &reference.linked_models {
-            validate_idref(model_id, &location, &mut report);
             if !model_ids.contains(model_id.as_str()) {
                 report.push(
                     ValidationCode::UnknownModelReference,
@@ -214,6 +226,14 @@ pub(crate) fn validate(archive: &MmcArchive) -> ValidationReport {
     }
 
     for document in archive.parsed_link_models() {
+        validate_metadata(&document.model().metadata, document.path(), &mut report);
+        if document.model().format_version != "2.0.0" {
+            report.push(
+                ValidationCode::UnsupportedFormatVersion,
+                document.path(),
+                "LinkModel 2.0 namespace requires formatVersion 2.0.0",
+            );
+        }
         let declared = container
             .link_models
             .iter()
@@ -235,6 +255,7 @@ pub(crate) fn validate(archive: &MmcArchive) -> ValidationReport {
         }
         for (link_index, link) in document.model().links.iter().enumerate() {
             let location = format!("{}:Link[{link_index}]", document.path());
+            validate_metadata(&link.metadata, &location, &mut report);
             if link.relata.len() < 2 {
                 report.push(
                     ValidationCode::LinkHasTooFewRelata,
@@ -244,13 +265,8 @@ pub(crate) fn validate(archive: &MmcArchive) -> ValidationReport {
             }
             for (relatum_index, relatum) in link.relata.iter().enumerate() {
                 let relatum_location = format!("{location}/Relatum[{relatum_index}]");
-                validate_idref(&relatum.model_id, &relatum_location, &mut report);
-                if let Some(format_id) = &relatum.format_id {
-                    validate_idref(format_id, &relatum_location, &mut report);
-                }
-                if let Some(resource_id) = &relatum.resource_id {
-                    validate_idref(resource_id, &relatum_location, &mut report);
-                }
+                validate_metadata(&relatum.metadata, &relatum_location, &mut report);
+
                 if !model_ids.contains(relatum.model_id.as_str()) {
                     report.push(
                         ValidationCode::UnknownModelReference,
@@ -269,43 +285,10 @@ pub(crate) fn validate(archive: &MmcArchive) -> ValidationReport {
                         ),
                     );
                 }
-                if let Some(format_id) = &relatum.format_id {
-                    if !representations
-                        .get(relatum.model_id.as_str())
-                        .is_some_and(|ids| ids.contains(format_id.as_str()))
-                    {
-                        report.push(
-                            ValidationCode::UnknownRepresentationReference,
-                            &relatum_location,
-                            format!(
-                                "unknown representation {format_id} in model {}",
-                                relatum.model_id
-                            ),
-                        );
-                    }
-                    if let Some(resource_id) = &relatum.resource_id {
-                        if !resources
-                            .get(&(relatum.model_id.as_str(), format_id.as_str()))
-                            .is_some_and(|ids| ids.contains(resource_id.as_str()))
-                        {
-                            report.push(
-                                ValidationCode::UnknownResourceReference,
-                                &relatum_location,
-                                format!(
-                                    "unknown resource {resource_id} in representation {format_id}"
-                                ),
-                            );
-                        }
-                    }
-                } else if relatum.resource_id.is_some() {
-                    report.push(
-                        ValidationCode::UnknownRepresentationReference,
-                        &relatum_location,
-                        "resource reference requires a representation reference",
-                    );
+                if let Some(model) = models_by_id.get(relatum.model_id.as_str()) {
+                    validate_relatum_references(model, relatum, &relatum_location, &mut report);
                 }
                 for rate in &relatum.rates {
-                    validate_idref(&rate.target_model, &relatum_location, &mut report);
                     if !model_ids.contains(rate.target_model.as_str()) {
                         report.push(
                             ValidationCode::RateTargetsUnknownModel,
@@ -327,64 +310,73 @@ pub(crate) fn validate(archive: &MmcArchive) -> ValidationReport {
     report
 }
 
-fn validate_xml_id<'a>(
-    id: &'a str,
+fn validate_relatum_references(
+    model: &ApplicationModel,
+    relatum: &Relatum,
     location: &str,
-    seen: &mut HashSet<&'a str>,
     report: &mut ValidationReport,
 ) {
-    validate_idref(id, location, report);
-    if !seen.insert(id) {
-        report.push(
-            ValidationCode::DuplicateXmlId,
+    let representation = match &relatum.format_id {
+        Some(id) => match model.representations.iter().find(|data| data.id == *id) {
+            Some(data) => Some(data),
+            None => {
+                report.push(
+                    ValidationCode::UnknownRepresentationReference,
+                    location,
+                    format!("unknown representation {id} in model {}", model.id),
+                );
+                None
+            }
+        },
+        None if model.representations.len() == 1 => model.representations.first(),
+        None => {
+            report.push(
+                ValidationCode::MissingRepresentationDisambiguator,
+                location,
+                "Relatum requires @f when its application model has multiple representations",
+            );
+            None
+        }
+    };
+    let Some(representation) = representation else {
+        return;
+    };
+    match &relatum.resource_id {
+        Some(id)
+            if !representation
+                .resources
+                .iter()
+                .any(|resource| resource.id == *id) =>
+        {
+            report.push(
+                ValidationCode::UnknownResourceReference,
+                location,
+                format!(
+                    "unknown resource {id} in representation {}",
+                    representation.id
+                ),
+            );
+        }
+        None if representation.resources.len() > 1 => report.push(
+            ValidationCode::MissingResourceDisambiguator,
             location,
-            format!("XML ID is not globally unique: {id}"),
-        );
+            "Relatum requires @r when its representation has multiple resources",
+        ),
+        _ => {}
     }
 }
 
-fn validate_idref(id: &str, location: &str, report: &mut ValidationReport) {
-    if !is_ncname(id) {
-        report.push(
-            ValidationCode::InvalidXmlId,
-            location,
-            format!("not a valid XML NCName/ID value: {id}"),
-        );
+fn validate_metadata(entries: &[MetadataEntry], location: &str, report: &mut ValidationReport) {
+    let mut keys = HashSet::new();
+    for entry in entries {
+        if !keys.insert((entry.category.as_deref(), entry.key.as_str())) {
+            report.push(
+                ValidationCode::DuplicateMetadataKey,
+                location,
+                format!("duplicate metadata key {:?}/{}", entry.category, entry.key),
+            );
+        }
     }
-}
-
-fn is_ncname(value: &str) -> bool {
-    let mut chars = value.chars();
-    chars.next().is_some_and(is_ncname_start) && chars.all(is_ncname_char)
-}
-
-fn is_ncname_start(ch: char) -> bool {
-    matches!(
-        ch,
-        'A'..='Z'
-            | '_'
-            | 'a'..='z'
-            | '\u{00C0}'..='\u{00D6}'
-            | '\u{00D8}'..='\u{00F6}'
-            | '\u{00F8}'..='\u{02FF}'
-            | '\u{0370}'..='\u{037D}'
-            | '\u{037F}'..='\u{1FFF}'
-            | '\u{200C}'..='\u{200D}'
-            | '\u{2070}'..='\u{218F}'
-            | '\u{2C00}'..='\u{2FEF}'
-            | '\u{3001}'..='\u{D7FF}'
-            | '\u{F900}'..='\u{FDCF}'
-            | '\u{FDF0}'..='\u{FFFD}'
-            | '\u{10000}'..='\u{EFFFF}'
-    )
-}
-
-fn is_ncname_char(ch: char) -> bool {
-    is_ncname_start(ch)
-        || matches!(
-            ch,
-            '-' | '.' | '0'..='9' | '\u{00B7}' | '\u{0300}'..='\u{036F}' | '\u{203F}'..='\u{2040}'
-        )
 }
 
 fn validate_location(

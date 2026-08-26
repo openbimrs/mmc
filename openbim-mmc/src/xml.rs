@@ -53,6 +53,12 @@ pub(crate) fn parse_multimodel(source: &[u8], limits: Limits) -> Result<MultiMod
                 }
                 stack.push(stack_name(local, standard));
                 if standard {
+                    if !valid_multimodel_path(&stack) {
+                        return Err(xml_message(
+                            "MultiModel.xml",
+                            "unexpected MMC element position",
+                        ));
+                    }
                     handle_multimodel_start(
                         &stack,
                         &element,
@@ -84,6 +90,12 @@ pub(crate) fn parse_multimodel(source: &[u8], limits: Limits) -> Result<MultiMod
                 }
                 stack.push(stack_name(local, standard));
                 if standard {
+                    if !valid_multimodel_path(&stack) {
+                        return Err(xml_message(
+                            "MultiModel.xml",
+                            "unexpected MMC element position",
+                        ));
+                    }
                     handle_multimodel_start(
                         &stack,
                         &element,
@@ -98,11 +110,16 @@ pub(crate) fn parse_multimodel(source: &[u8], limits: Limits) -> Result<MultiMod
             }
             Event::Text(text) => {
                 if let Some(value) = &mut linked_model_text {
-                    value.push_str(
-                        &text
-                            .xml_content()
-                            .map_err(|error| xml_error("MultiModel.xml", error))?,
-                    );
+                    let decoded = text
+                        .xml_content()
+                        .map_err(|error| xml_error("MultiModel.xml", error))?;
+                    if decoded.chars().any(|character| !is_xml_char(character)) {
+                        return Err(xml_message(
+                            "MultiModel.xml",
+                            "text resolves to a character forbidden by XML 1.0",
+                        ));
+                    }
+                    value.push_str(&decoded);
                 }
             }
             Event::CData(text) => {
@@ -278,12 +295,15 @@ pub(crate) fn parse_link_model(
                     root_seen = true;
                     let attrs = attributes(element, reader.decoder(), path)?;
                     model = Some(LinkModel {
-                        format_version: required(&attrs, "formatVersion", "LinkModel")?,
+                        format_version: required_at(&attrs, "formatVersion", "LinkModel", path)?,
                         ..LinkModel::default()
                     });
                 }
                 stack.push(stack_name(local, standard));
                 if standard {
+                    if !valid_link_path(&stack) {
+                        return Err(xml_message(path, "unexpected LinkModel element position"));
+                    }
                     let attrs = attributes(element, reader.decoder(), path)?;
                     handle_link_start(&stack, &attrs, model.as_mut(), &mut relata, limits, path)?;
                 }
@@ -324,27 +344,27 @@ fn handle_link_start(
             .last_mut()
             .ok_or_else(|| xml_message(path, "Relatum outside Link"))?;
         link.relata.push(Relatum {
-            element_id: required(attrs, "id", "Relatum")?,
-            model_id: required(attrs, "m", "Relatum")?,
+            element_id: required_at(attrs, "id", "Relatum", path)?,
+            model_id: required_at(attrs, "m", "Relatum", path)?,
             format_id: attrs.get("f").cloned(),
             resource_id: attrs.get("r").cloned(),
             ..Relatum::default()
         });
         *relata_count = relata_count.saturating_add(1);
         check_count("relata", *relata_count, limits.max_linked_elements)?;
-    } else if path_ends(stack, &["Rates", "Rate"]) {
+    } else if path_ends(stack, &["Relatum", "Rate"]) {
         let relatum = model
             .links
             .last_mut()
             .and_then(|link| link.relata.last_mut())
             .ok_or_else(|| xml_message(path, "Rate outside Relatum"))?;
         relatum.rates.push(Rate {
-            rate_type: required(attrs, "type", "Rate")?,
-            value: required(attrs, "value", "Rate")?,
-            target_model: required(attrs, "targetModel", "Rate")?,
+            rate_type: required_at(attrs, "t", "Rate", path)?,
+            value: required_at(attrs, "v", "Rate", path)?,
+            target_model: required_at(attrs, "m", "Rate", path)?,
         });
     } else if stack.last().is_some_and(|name| name == "Meta") {
-        let item = parse_link_meta(attrs)?;
+        let item = parse_link_meta(attrs, path)?;
         if stack
             .iter()
             .rev()
@@ -377,7 +397,7 @@ fn parse_container_attributes(attrs: &Attributes) -> Result<ContainerMetadata, M
     Ok(ContainerMetadata {
         uuid,
         format_version: required(attrs, "formatVersion", "MultiModel")?,
-        mm_domain: required(attrs, "mmDomain", "MultiModel")?,
+        mm_domain: attrs.get("mmDomain").cloned(),
         metadata: Vec::new(),
     })
 }
@@ -391,10 +411,10 @@ fn parse_mmc_meta(attrs: &Attributes) -> Result<MetadataEntry, MmcError> {
     })
 }
 
-fn parse_link_meta(attrs: &Attributes) -> Result<MetadataEntry, MmcError> {
+fn parse_link_meta(attrs: &Attributes, path: &str) -> Result<MetadataEntry, MmcError> {
     Ok(MetadataEntry {
-        key: required(attrs, "k", "Meta")?,
-        value: required(attrs, "v", "Meta")?,
+        key: required_at(attrs, "k", "Meta", path)?,
+        value: required_at(attrs, "v", "Meta", path)?,
         value_type: attrs.get("t").cloned(),
         category: attrs.get("c").cloned(),
     })
@@ -437,6 +457,12 @@ fn attributes(
             .decode_and_unescape_value(decoder)
             .map_err(|error| xml_error(path, error))?
             .into_owned();
+        if value.chars().any(|character| !is_xml_char(character)) {
+            return Err(xml_message(
+                path,
+                format!("attribute {key} resolves to a character forbidden by XML 1.0"),
+            ));
+        }
         if result.insert(key.clone(), value).is_some() {
             return Err(xml_message(path, format!("duplicate attribute {key}")));
         }
@@ -445,11 +471,20 @@ fn attributes(
 }
 
 fn required(attrs: &Attributes, name: &str, element: &str) -> Result<String, MmcError> {
+    required_at(attrs, name, element, "MultiModel.xml")
+}
+
+fn required_at(
+    attrs: &Attributes,
+    name: &str,
+    element: &str,
+    path: &str,
+) -> Result<String, MmcError> {
     attrs
         .get(name)
         .filter(|value| !value.is_empty())
         .cloned()
-        .ok_or_else(|| xml_message("MultiModel.xml", format!("{element} requires @{name}")))
+        .ok_or_else(|| xml_message(path, format!("{element} requires @{name}")))
 }
 
 fn local_name(element: &BytesStart<'_>) -> Result<String, MmcError> {
@@ -488,6 +523,98 @@ fn ensure_root(
     Ok(())
 }
 
+fn valid_multimodel_path(stack: &[String]) -> bool {
+    let path = stack.iter().map(String::as_str).collect::<Vec<_>>();
+    matches!(
+        path.as_slice(),
+        ["MultiModel"]
+            | ["MultiModel", "MetaData"]
+            | ["MultiModel", "MetaData", "Meta"]
+            | ["MultiModel", "ApplicationModels"]
+            | ["MultiModel", "ApplicationModels", "ApplicationModel"]
+            | [
+                "MultiModel",
+                "ApplicationModels",
+                "ApplicationModel",
+                "MetaData"
+            ]
+            | [
+                "MultiModel",
+                "ApplicationModels",
+                "ApplicationModel",
+                "MetaData",
+                "Meta"
+            ]
+            | [
+                "MultiModel",
+                "ApplicationModels",
+                "ApplicationModel",
+                "ModelData"
+            ]
+            | [
+                "MultiModel",
+                "ApplicationModels",
+                "ApplicationModel",
+                "ModelData",
+                "MetaData"
+            ]
+            | [
+                "MultiModel",
+                "ApplicationModels",
+                "ApplicationModel",
+                "ModelData",
+                "MetaData",
+                "Meta"
+            ]
+            | [
+                "MultiModel",
+                "ApplicationModels",
+                "ApplicationModel",
+                "ModelData",
+                "DataRessource"
+            ]
+            | [
+                "MultiModel",
+                "ApplicationModels",
+                "ApplicationModel",
+                "ModelData",
+                "DataRessource",
+                "MetaData"
+            ]
+            | [
+                "MultiModel",
+                "ApplicationModels",
+                "ApplicationModel",
+                "ModelData",
+                "DataRessource",
+                "MetaData",
+                "Meta"
+            ]
+            | ["MultiModel", "LinkModels"]
+            | ["MultiModel", "LinkModels", "LinkModel"]
+            | ["MultiModel", "LinkModels", "LinkModel", "MetaData"]
+            | ["MultiModel", "LinkModels", "LinkModel", "MetaData", "Meta"]
+            | ["MultiModel", "LinkModels", "LinkModel", "LinkedModel"]
+    )
+}
+
+fn valid_link_path(stack: &[String]) -> bool {
+    let path = stack.iter().map(String::as_str).collect::<Vec<_>>();
+    matches!(
+        path.as_slice(),
+        ["LinkModel"]
+            | ["LinkModel", "MetaData"]
+            | ["LinkModel", "MetaData", "Meta"]
+            | ["LinkModel", "Link"]
+            | ["LinkModel", "Link", "MetaData"]
+            | ["LinkModel", "Link", "MetaData", "Meta"]
+            | ["LinkModel", "Link", "Relatum"]
+            | ["LinkModel", "Link", "Relatum", "MetaData"]
+            | ["LinkModel", "Link", "Relatum", "MetaData", "Meta"]
+            | ["LinkModel", "Link", "Relatum", "Rate"]
+    )
+}
+
 fn path_ends(stack: &[String], suffix: &[&str]) -> bool {
     stack.len() >= suffix.len()
         && stack[stack.len() - suffix.len()..]
@@ -514,10 +641,21 @@ fn check_xml_size(path: &str, source: &[u8], limits: Limits) -> Result<(), MmcEr
             maximum: limits.max_xml_bytes as u64,
         });
     }
-    if std::str::from_utf8(source).is_err() {
-        return Err(xml_message(path, "XML is not UTF-8"));
+    let text = std::str::from_utf8(source).map_err(|_| xml_message(path, "XML is not UTF-8"))?;
+    if text.chars().any(|character| !is_xml_char(character)) {
+        return Err(xml_message(
+            path,
+            "XML contains a character forbidden by XML 1.0",
+        ));
     }
     Ok(())
+}
+
+fn is_xml_char(character: char) -> bool {
+    matches!(
+        character,
+        '\u{9}' | '\u{A}' | '\u{D}' | '\u{20}'..='\u{D7FF}' | '\u{E000}'..='\u{FFFD}' | '\u{10000}'..='\u{10FFFF}'
+    )
 }
 
 fn check_count(resource: &'static str, actual: usize, maximum: usize) -> Result<(), MmcError> {
