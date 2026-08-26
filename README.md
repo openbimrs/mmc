@@ -1,6 +1,13 @@
 # openbim-mmc
 
+[![CI](https://github.com/openbimrs/mmc/actions/workflows/ci.yml/badge.svg)](https://github.com/openbimrs/mmc/actions/workflows/ci.yml)
+[![Documentation](https://github.com/openbimrs/mmc/actions/workflows/pages.yml/badge.svg)](https://openbimrs.github.io/mmc/)
+[![docs.rs](https://docs.rs/openbim-mmc/badge.svg)](https://docs.rs/openbim-mmc)
+[![MSRV](https://img.shields.io/badge/MSRV-1.88-blue)](https://www.rust-lang.org)
+
 Pure-Rust Multi-Model Container (MMC) 2.0 mechanics for DIN 18290 workflows.
+
+**[Read the documentation →](https://openbimrs.github.io/mmc/)**
 
 ## Compatibility status
 
@@ -14,10 +21,16 @@ contract, not full XSD conformance.
 
 - Bounded `.mmc` ZIP parsing.
 - Namespace-aware `MultiModel.xml` and LinkModel XML projections.
-- Original XML, payload, and archive byte preservation.
+- Exact access to original archive, XML, and opaque entry bytes.
+- Deterministic re-emission that preserves each entry's uncompressed bytes.
 - Stable structural and referential-integrity reports.
 - Safe extraction with path, collision, symlink, and overwrite protection.
 - Deterministic archive construction and writing.
+
+`original_bytes()` provides an exact no-op copy of the input archive. Rebuilding an
+archive preserves every uncompressed entry byte, including unknown entries and
+source XML, but intentionally does not reproduce ZIP compression streams,
+timestamps, or central-directory layout byte-for-byte.
 
 ## Boundary
 

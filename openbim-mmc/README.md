@@ -2,6 +2,8 @@
 
 Safe, lossless Rust mechanics for Multi-Model Container 2.0 archives used in DIN 18290 workflows.
 
+[User guide](https://openbimrs.github.io/mmc/) · [Rust API](https://docs.rs/openbim-mmc)
+
 The typed projection and writer target the public buildingSMART MMC `2.0.0`
 schema shape. This crate does not claim complete conformance with every DIN
 18290-1 edition, and `validate()` is a structural/referential check rather than
@@ -23,9 +25,13 @@ The crate provides:
 - exact root `MultiModel.xml` handling;
 - namespace-aware MMC and LinkModel typed projections;
 - opaque application resources with original-byte access;
-- deterministic writing and a typed archive builder;
+- exact original-archive access plus deterministic entry-byte-preserving re-emission;
 - extraction that rejects unsafe names, symlinks, collisions, and overwrites;
 - stable validation codes for structural and referential-integrity findings.
+
+`original_bytes()` is the byte-identical no-op path. Deterministic reconstruction
+preserves uncompressed entry content, including unknown entries and source XML,
+but does not promise identical ZIP compression streams or metadata.
 
 `openbim-mmc` intentionally does not parse IFC or GAEB payloads and does not depend on ISO 21597 ICDD. DIN 18290 Parts 2–4 are domain profiles above this crate.
 

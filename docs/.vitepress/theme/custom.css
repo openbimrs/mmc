@@ -1,0 +1,44 @@
+:root {
+  --vp-c-brand-1: #6d28d9;
+  --vp-c-brand-2: #7c3aed;
+  --vp-c-brand-3: #8b5cf6;
+  --vp-c-brand-soft: rgba(124, 58, 237, 0.14);
+}
+
+.dark {
+  --vp-c-brand-1: #c4b5fd;
+  --vp-c-brand-2: #a78bfa;
+  --vp-c-brand-3: #8b5cf6;
+}
+
+.status-implemented,
+.status-boundary {
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.78em;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-implemented {
+  background: rgba(22, 163, 74, 0.16);
+  color: #15803d;
+}
+
+.status-boundary {
+  background: rgba(217, 119, 6, 0.16);
+  color: #b45309;
+}
+
+.dark .status-implemented {
+  color: #4ade80;
+}
+
+.dark .status-boundary {
+  color: #fbbf24;
+}
+
+.vp-doc table {
+  display: table;
+  width: 100%;
+}

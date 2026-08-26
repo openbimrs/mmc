@@ -10,4 +10,6 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - typed lossless projections for MultiModel and LinkModel documents;
 - deterministic archive construction and writing;
 - safe new-file extraction and path-collision protection;
-- stable structural and referential-integrity reports.
+- stable structural and referential-integrity reports;
+- a VitePress user guide and GitHub Pages deployment with source/output leakage gates;
+- explicit archive/XML preservation guarantees that distinguish exact no-op access from deterministic ZIP reconstruction.
