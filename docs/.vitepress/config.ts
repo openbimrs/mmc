@@ -8,6 +8,7 @@ export default defineConfig({
   cleanUrls: true,
   lastUpdated: true,
   srcExclude: ['**/AGENTS.md', '**/PLAN.md', 'adr/_template.md'],
+  rewrites: { 'ROADMAP.md': 'project/roadmap.md' },
   sitemap: { hostname: 'https://openbimrs.github.io/mmc/' },
   head: [
     ['meta', { name: 'theme-color', content: '#6d28d9' }],
@@ -22,7 +23,7 @@ export default defineConfig({
       { text: 'Architecture', link: '/architecture/' },
       { text: 'Security', link: '/security' },
       { text: 'API', link: '/api/rust' },
-      { text: 'Roadmap', link: '/ROADMAP' },
+      { text: 'Roadmap', link: '/project/roadmap' },
     ],
     sidebar: {
       '/guide/': [
@@ -49,6 +50,12 @@ export default defineConfig({
           ],
         },
       ],
+      '/project/': [
+        {
+          text: 'Project',
+          items: [{ text: 'Roadmap', link: '/project/roadmap' }],
+        },
+      ],
       '/': [
         {
           text: 'Start here',
@@ -57,7 +64,7 @@ export default defineConfig({
             { text: 'Getting started', link: '/guide/getting-started' },
             { text: 'Capabilities', link: '/capabilities' },
             { text: 'Security', link: '/security' },
-            { text: 'Roadmap', link: '/ROADMAP' },
+            { text: 'Roadmap', link: '/project/roadmap' },
           ],
         },
       ],
