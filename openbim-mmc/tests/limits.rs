@@ -64,3 +64,38 @@ fn enforces_total_size_and_compression_ratio_budgets() {
         },
     ));
 }
+
+#[test]
+fn rejects_forged_uncompressed_sizes_using_actual_output_budgets() {
+    let index = common::valid_multimodel("links/elements.xml", "models/model.ifc");
+    let repeated = vec![b'x'; 100_000];
+    let forged = common::zip_with_forged_uncompressed_size(
+        &[
+            ("MultiModel.xml", index.as_slice()),
+            ("models/model.ifc", repeated.as_slice()),
+        ],
+        "models/model.ifc",
+        1,
+    );
+
+    assert!(matches!(
+        MmcArchive::parse(&forged),
+        Err(MmcError::InvalidZipMetadata { .. })
+    ));
+    is_limit(MmcArchive::parse_with_limits(
+        &forged,
+        Limits {
+            max_total_uncompressed_bytes: index.len() + 1_000,
+            max_compression_ratio: usize::MAX,
+            ..Limits::default()
+        },
+    ));
+    is_limit(MmcArchive::parse_with_limits(
+        &forged,
+        Limits {
+            max_total_uncompressed_bytes: usize::MAX,
+            max_compression_ratio: 10,
+            ..Limits::default()
+        },
+    ));
+}

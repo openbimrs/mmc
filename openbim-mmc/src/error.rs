@@ -22,6 +22,15 @@ pub enum MmcError {
     #[error("the archive must contain exactly one root MultiModel.xml")]
     MissingRoot,
 
+    #[error(
+        "inconsistent ZIP metadata for {path:?}: declared {declared} uncompressed bytes, read {actual}"
+    )]
+    InvalidZipMetadata {
+        path: String,
+        declared: u64,
+        actual: u64,
+    },
+
     #[error("resource limit for {resource} exceeded: observed {actual}, maximum {maximum}")]
     LimitExceeded {
         resource: &'static str,

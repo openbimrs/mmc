@@ -36,6 +36,27 @@ PROBES = [
         "Ok(true)",
         ["test", "--test", "security", "rejects_wrong_xml_root_namespace_and_doctype", "--", "--exact"],
     ),
+    (
+        "actual-uncompressed-total",
+        "openbim-mmc/src/archive.rs",
+        "if actual_total > limits.max_total_uncompressed_bytes as u64 {",
+        "if false {",
+        ["test", "--test", "limits", "rejects_forged_uncompressed_sizes_using_actual_output_budgets", "--", "--exact"],
+    ),
+    (
+        "actual-compression-ratio",
+        "openbim-mmc/src/archive.rs",
+        "> (bytes.len() as u128) * (limits.max_compression_ratio as u128)",
+        "> (bytes.len() as u128) * (limits.max_compression_ratio as u128) * 10_000_000",
+        ["test", "--test", "limits", "rejects_forged_uncompressed_sizes_using_actual_output_budgets", "--", "--exact"],
+    ),
+    (
+        "zip-size-consistency",
+        "openbim-mmc/src/archive.rs",
+        "if payload.len() as u64 != declared {",
+        "if false {",
+        ["test", "--test", "limits", "rejects_forged_uncompressed_sizes_using_actual_output_budgets", "--", "--exact"],
+    ),
 ]
 
 with tempfile.TemporaryDirectory(prefix="openbim-mmc-mutations-") as temporary:

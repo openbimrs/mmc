@@ -105,6 +105,41 @@ pub fn zip_with_exact_duplicate_root(index: &[u8]) -> Vec<u8> {
     bytes
 }
 
+pub fn zip_with_forged_uncompressed_size(
+    entries: &[(&str, &[u8])],
+    target: &str,
+    forged_size: u32,
+) -> Vec<u8> {
+    let mut bytes = zip(entries);
+    let mut offset = 0;
+    let mut found = false;
+    while offset + 46 <= bytes.len() {
+        let Some(relative) = bytes[offset..]
+            .windows(4)
+            .position(|window| window == b"PK\x01\x02")
+        else {
+            break;
+        };
+        let central = offset + relative;
+        let name_len = u16::from_le_bytes([bytes[central + 28], bytes[central + 29]]) as usize;
+        let extra_len = u16::from_le_bytes([bytes[central + 30], bytes[central + 31]]) as usize;
+        let comment_len = u16::from_le_bytes([bytes[central + 32], bytes[central + 33]]) as usize;
+        let name_start = central + 46;
+        let name_end = name_start + name_len;
+        if name_end > bytes.len() {
+            break;
+        }
+        if &bytes[name_start..name_end] == target.as_bytes() {
+            bytes[central + 24..central + 28].copy_from_slice(&forged_size.to_le_bytes());
+            found = true;
+            break;
+        }
+        offset = name_end + extra_len + comment_len;
+    }
+    assert!(found, "target central-directory entry must exist");
+    bytes
+}
+
 pub fn valid_archive() -> Vec<u8> {
     let index = valid_multimodel("links/elements.xml", "models/model.ifc");
     let links = valid_link_model();

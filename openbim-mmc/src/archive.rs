@@ -83,7 +83,8 @@ impl MmcArchive {
 
         let mut entries = Vec::with_capacity(zip.len());
         let mut normalized = HashMap::<String, String>::new();
-        let mut total = 0u64;
+        let mut declared_total = 0u64;
+        let mut actual_total = 0u64;
         for index in 0..zip.len() {
             let mut file = zip.by_index(index)?;
             let raw_name = file.name_raw();
@@ -125,15 +126,18 @@ impl MmcArchive {
                     maximum: limits.max_entry_bytes as u64,
                 });
             }
-            total = total.checked_add(declared).ok_or(MmcError::LimitExceeded {
-                resource: "total uncompressed bytes",
-                actual: u64::MAX,
-                maximum: limits.max_total_uncompressed_bytes as u64,
-            })?;
-            if total > limits.max_total_uncompressed_bytes as u64 {
+            declared_total =
+                declared_total
+                    .checked_add(declared)
+                    .ok_or(MmcError::LimitExceeded {
+                        resource: "total uncompressed bytes",
+                        actual: u64::MAX,
+                        maximum: limits.max_total_uncompressed_bytes as u64,
+                    })?;
+            if declared_total > limits.max_total_uncompressed_bytes as u64 {
                 return Err(MmcError::LimitExceeded {
                     resource: "total uncompressed bytes",
-                    actual: total,
+                    actual: declared_total,
                     maximum: limits.max_total_uncompressed_bytes as u64,
                 });
             }
@@ -158,6 +162,37 @@ impl MmcArchive {
                     resource: "entry bytes",
                     actual: payload.len() as u64,
                     maximum: limits.max_entry_bytes as u64,
+                });
+            }
+            actual_total =
+                actual_total
+                    .checked_add(payload.len() as u64)
+                    .ok_or(MmcError::LimitExceeded {
+                        resource: "total uncompressed bytes",
+                        actual: u64::MAX,
+                        maximum: limits.max_total_uncompressed_bytes as u64,
+                    })?;
+            if actual_total > limits.max_total_uncompressed_bytes as u64 {
+                return Err(MmcError::LimitExceeded {
+                    resource: "total uncompressed bytes",
+                    actual: actual_total,
+                    maximum: limits.max_total_uncompressed_bytes as u64,
+                });
+            }
+            if (actual_total as u128)
+                > (bytes.len() as u128) * (limits.max_compression_ratio as u128)
+            {
+                return Err(MmcError::LimitExceeded {
+                    resource: "actual archive compression ratio",
+                    actual: actual_total / (bytes.len() as u64).max(1),
+                    maximum: limits.max_compression_ratio as u64,
+                });
+            }
+            if payload.len() as u64 != declared {
+                return Err(MmcError::InvalidZipMetadata {
+                    path: name,
+                    declared,
+                    actual: payload.len() as u64,
                 });
             }
             entries.push(ArchiveEntry {
@@ -324,7 +359,7 @@ impl MmcArchive {
             let target = root.join(&entry.path);
             let parent = target
                 .parent()
-                .expect("validated archive path has a parent");
+                .ok_or_else(|| unsafe_extract(&target, "target has no parent"))?;
             create_directories_without_symlinks(root, parent)?;
             let mut file = OpenOptions::new()
                 .write(true)
