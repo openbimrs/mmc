@@ -113,6 +113,20 @@ PROBES = [
         "if false {\n                    return Err(xml_message(\n                        path,",
         ["test", "--test", "conformance", "rejects_content_outside_the_single_document_root", "--", "--exact"],
     ),
+    (
+        "multimodel-declaration-after-root",
+        "openbim-mmc/src/xml.rs",
+        "Event::Decl(_) if events != 1 => {\n                return Err(xml_message(\n                    \"MultiModel.xml\",",
+        "Event::Decl(_) if false => {\n                return Err(xml_message(\n                    \"MultiModel.xml\",",
+        ["test", "--test", "conformance", "rejects_content_outside_the_single_document_root", "--", "--exact"],
+    ),
+    (
+        "link-model-declaration-after-root",
+        "openbim-mmc/src/xml.rs",
+        "Event::Decl(_) if events != 1 => {\n                return Err(xml_message(\n                    path,",
+        "Event::Decl(_) if false => {\n                return Err(xml_message(\n                    path,",
+        ["test", "--test", "conformance", "rejects_content_outside_the_single_document_root", "--", "--exact"],
+    ),
 ]
 
 with tempfile.TemporaryDirectory(prefix="openbim-mmc-mutations-") as temporary:

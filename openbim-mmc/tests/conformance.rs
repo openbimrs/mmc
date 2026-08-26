@@ -147,7 +147,11 @@ fn rejects_content_outside_the_single_document_root() {
         "models/model.ifc",
     ))
     .unwrap();
-    for trailing in ["garbage", "<x:extra xmlns:x=\"urn:extension\"/>"] {
+    for trailing in [
+        "garbage",
+        "<x:extra xmlns:x=\"urn:extension\"/>",
+        "<?xml version=\"1.0\"?>",
+    ] {
         let malformed = format!("{index}{trailing}");
         assert!(
             MmcArchive::parse(common::zip(&[("MultiModel.xml", malformed.as_bytes(),)])).is_err()
@@ -155,7 +159,11 @@ fn rejects_content_outside_the_single_document_root() {
     }
 
     let valid_link = String::from_utf8(common::valid_link_model()).unwrap();
-    for trailing in ["garbage", "<x:extra xmlns:x=\"urn:extension\"/>"] {
+    for trailing in [
+        "garbage",
+        "<x:extra xmlns:x=\"urn:extension\"/>",
+        "<?xml version=\"1.0\"?>",
+    ] {
         let link = format!("{valid_link}{trailing}");
         let archive = common::zip(&[
             ("MultiModel.xml", index.as_bytes()),

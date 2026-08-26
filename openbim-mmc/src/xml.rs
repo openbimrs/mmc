@@ -151,6 +151,12 @@ pub(crate) fn parse_multimodel(source: &[u8], limits: Limits) -> Result<MultiMod
                 }
                 stack.pop();
             }
+            Event::Decl(_) if events != 1 => {
+                return Err(xml_message(
+                    "MultiModel.xml",
+                    "XML declaration is only allowed at document start",
+                ));
+            }
             Event::DocType(_) => {
                 return Err(xml_message("MultiModel.xml", "DOCTYPE is prohibited"));
             }
@@ -360,6 +366,12 @@ pub(crate) fn parse_link_model(
             }
             Event::CData(_) if stack.is_empty() => {
                 return Err(xml_message(path, "CDATA outside the document root"));
+            }
+            Event::Decl(_) if events != 1 => {
+                return Err(xml_message(
+                    path,
+                    "XML declaration is only allowed at document start",
+                ));
             }
             Event::DocType(_) => return Err(xml_message(path, "DOCTYPE is prohibited")),
             Event::GeneralRef(reference) => {
