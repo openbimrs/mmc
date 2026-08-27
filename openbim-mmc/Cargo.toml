@@ -1,24 +1,30 @@
 [package]
 name = "openbim-mmc"
 version = "0.1.0"
-edition.workspace = true
-rust-version.workspace = true
-license.workspace = true
-authors.workspace = true
-repository.workspace = true
+edition = "2021"
+rust-version = "1.88"
+license = "MIT"
+authors = ["openbimrs contributors"]
+repository = "https://github.com/openbimrs/mmc"
 description = "Pure-Rust MMC 2.0 archive reading, validation, extraction, and writing."
 readme = "README.md"
 keywords = ["mmc", "bim", "openbim", "din-18290", "multimodel"]
 categories = ["parser-implementations", "data-structures", "filesystem"]
 include = ["src/**", "tests/**", "README.md", "LICENSE", "CHANGELOG.md", "Cargo.toml"]
 
+# Dependencies are declared literally rather than inherited from
+# `[workspace.dependencies]`. This crate is consumed two ways: standalone from
+# this repository, and as the `packages/mmc` submodule of the `openbim`
+# superproject, whose root workspace glob (`packages/*/openbim-*`) claims it as
+# a member. A member cannot inherit keys the *claiming* workspace does not
+# define, so literal values are what keep both builds working.
 [dependencies]
-iri-string.workspace = true
-quick-xml.workspace = true
-thiserror.workspace = true
-unicode-normalization.workspace = true
-uuid.workspace = true
-zip.workspace = true
+iri-string = { version = "0.7.8", default-features = false }
+quick-xml = "0.38.4"
+thiserror = "2.0.16"
+unicode-normalization = "0.1.24"
+uuid = { version = "1.18.1", features = ["std"] }
+zip = { version = "4.3.0", default-features = false, features = ["deflate"] }
 
 [dev-dependencies]
 tempfile = "3.23.0"
