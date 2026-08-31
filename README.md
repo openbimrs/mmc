@@ -63,4 +63,4 @@ See [ADR 0001](docs/adr/0001-format-boundary.md), the [roadmap](docs/ROADMAP.md)
 
 ## License
 
-MIT. Normative DIN documents and schemas are not redistributed.
+AGPL-3.0-or-later. Normative DIN documents and schemas are not redistributed.

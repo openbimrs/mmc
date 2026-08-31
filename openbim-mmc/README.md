@@ -37,4 +37,4 @@ but does not promise identical ZIP compression streams or metadata.
 
 The unprefixed crates.io name `mmc` belongs to an unrelated project. No alias package is provided.
 
-Rust `1.88.0` is the supported baseline. License: MIT. Normative standards and schemas are not included in the package.
+Rust `1.88.0` is the supported baseline. License: AGPL-3.0-or-later. Normative standards and schemas are not included in the package.

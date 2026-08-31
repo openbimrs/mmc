@@ -76,7 +76,7 @@ export default defineConfig({
     },
     search: { provider: 'local' },
     footer: {
-      message: 'MIT licensed. Normative DIN material and public-prior-art schemas are not redistributed.',
+      message: 'AGPL-3.0-or-later licensed. Normative DIN material and public-prior-art schemas are not redistributed.',
       copyright: 'Copyright © 2026 openbimrs contributors',
     },
   },
