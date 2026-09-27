@@ -10,6 +10,12 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
+# The packaged crate ships its own copy of the changelog; it must not drift.
+if ! cmp -s CHANGELOG.md openbim-mmc/CHANGELOG.md; then
+  echo "openbim-mmc/CHANGELOG.md must be an exact copy of CHANGELOG.md" >&2
+  exit 1
+fi
+
 cargo "+${TOOLCHAIN}" fmt --all -- --check
 cargo "+${TOOLCHAIN}" check --workspace --all-targets --locked
 cargo "+${TOOLCHAIN}" test --workspace --all-targets --locked
