@@ -5,7 +5,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-cmd = ["cargo", "+1.88.0", "package", "-p", "openbim-mmc", "--locked", "--no-verify", "--list"]
+cmd = ["cargo", "+1.99.1", "package", "-p", "openbim-mmc", "--locked", "--no-verify", "--list"]
 result = subprocess.run(cmd, cwd=ROOT, text=True, capture_output=True)
 if result.returncode:
     print(result.stdout, end="", file=sys.stderr)

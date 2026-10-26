@@ -3,7 +3,7 @@
 [![CI](https://github.com/openbimrs/mmc/actions/workflows/ci.yml/badge.svg)](https://github.com/openbimrs/mmc/actions/workflows/ci.yml)
 [![Documentation](https://github.com/openbimrs/mmc/actions/workflows/pages.yml/badge.svg)](https://openbimrs.github.io/mmc/)
 [![docs.rs](https://docs.rs/openbim-mmc/badge.svg)](https://docs.rs/openbim-mmc)
-[![MSRV](https://img.shields.io/badge/MSRV-1.88-blue)](https://www.rust-lang.org)
+[![MSRV](https://img.shields.io/badge/MSRV-1.99-blue)](https://www.rust-lang.org)
 
 Pure-Rust Multi-Model Container (MMC) 2.0 mechanics for DIN 18290 workflows.
 
@@ -57,7 +57,7 @@ archive.extract_to("out")?;
 
 ## Verification
 
-Run `scripts/gate.sh` from a clean Git tree. The gate pins Rust `1.88.0`, tests all targets, denies Clippy and rustdoc warnings, verifies the minimal feature build, and audits package contents. `scripts/mutation-probes.py` proves critical tests detect weakened guards.
+Run `scripts/gate.sh` from a clean Git tree. The gate pins Rust `1.99.1`, tests all targets, denies Clippy and rustdoc warnings, verifies the minimal feature build, and audits package contents. `scripts/mutation-probes.py` proves critical tests detect weakened guards.
 
 See [ADR 0001](docs/adr/0001-format-boundary.md), the [roadmap](docs/ROADMAP.md), and the [changelog](CHANGELOG.md).
 

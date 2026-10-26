@@ -2,7 +2,7 @@
 set -euo pipefail
 
 export CARGO_TERM_COLOR=always
-TOOLCHAIN="${RUST_TOOLCHAIN:-1.88.0}"
+TOOLCHAIN="${RUST_TOOLCHAIN:-1.99.1}"
 
 if [[ -n "$(git status --porcelain)" ]]; then
   echo "release gate requires a clean exact tree" >&2

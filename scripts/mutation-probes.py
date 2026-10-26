@@ -163,7 +163,7 @@ with tempfile.TemporaryDirectory(prefix="openbim-mmc-mutations-") as temporary:
         env = os.environ.copy()
         env["CARGO_TARGET_DIR"] = str(base / "target")
         result = subprocess.run(
-            ["cargo", "+1.88.0", cargo_args[0], "--locked", *cargo_args[1:]],
+            ["cargo", "+1.99.1", cargo_args[0], "--locked", *cargo_args[1:]],
             cwd=checkout,
             env=env,
             stdout=subprocess.DEVNULL,

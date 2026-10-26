@@ -4,6 +4,10 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+### Changed
+
+- Raise MSRV to Rust 1.99.
+
 ## [0.1.0] - 2026-09-27
 
 ### Changed
