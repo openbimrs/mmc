@@ -4,8 +4,14 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-10-28
+
 ### Changed
 
+- Licence: `AGPL-3.0-or-later OR LicenseRef-Commercial` (was
+  `AGPL-3.0-or-later`); a commercial licence is available from the copyright
+  holder named in `NOTICE`. See LICENSING.md. The crate ships `LICENSE`,
+  `NOTICE` and `LICENSES/LicenseRef-Commercial.txt`.
 - Raise MSRV to Rust 1.99.
 
 ## [0.1.0] - 2026-09-27
@@ -24,5 +30,6 @@ All notable changes follow [Keep a Changelog](https://keepachangelog.com/en/1.1.
 - a VitePress user guide and GitHub Pages deployment with source/output leakage gates;
 - explicit archive/XML preservation guarantees that distinguish exact no-op access from deterministic ZIP reconstruction.
 
-[Unreleased]: https://github.com/openbimrs/mmc/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/openbimrs/mmc/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/openbimrs/mmc/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/openbimrs/mmc/releases/tag/v0.1.0
