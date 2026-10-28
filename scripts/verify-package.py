@@ -14,7 +14,8 @@ if result.returncode:
 paths = [line.strip() for line in result.stdout.splitlines() if line.strip()]
 allowed_files = {
     ".cargo_vcs_info.json", "Cargo.lock", "Cargo.toml", "Cargo.toml.orig",
-    "README.md", "LICENSE", "LICENSES/MIT.txt", "CHANGELOG.md",
+    "README.md", "LICENSE", "NOTICE", "LICENSES/MIT.txt", "LICENSES/LicenseRef-Commercial.txt",
+    "CHANGELOG.md",
 }
 for path in paths:
     if path in allowed_files:
@@ -31,8 +32,19 @@ for path in paths:
     if source.is_file() and source.suffix in {".rs", ".toml", ".md"}:
         if "[truncated]" in source.read_text(errors="replace"):
             raise SystemExit(f"truncation marker found: {path}")
-required = {"Cargo.toml", "README.md", "LICENSE", "LICENSES/MIT.txt", "src/lib.rs"}
+required = {
+    "Cargo.toml", "README.md", "LICENSE", "NOTICE", "LICENSES/MIT.txt",
+    "LICENSES/LicenseRef-Commercial.txt", "src/lib.rs",
+}
 missing = required.difference(paths)
 if missing:
     raise SystemExit(f"required package members absent: {sorted(missing)}")
+# The crate is `AGPL-3.0-or-later OR LicenseRef-Commercial`: it ships
+# byte-identical copies of the root licence texts and notice.
+for name in ("LICENSE", "NOTICE", "LICENSES/LicenseRef-Commercial.txt"):
+    if (ROOT / "openbim-mmc" / name).read_bytes() != (ROOT / name).read_bytes():
+        raise SystemExit(f"packaged {name} differs from the root")
+manifest = (ROOT / "openbim-mmc" / "Cargo.toml").read_text()
+if 'license = "AGPL-3.0-or-later OR LicenseRef-Commercial"\n' not in manifest:
+    raise SystemExit("packaged crate: unexpected license expression")
 print(f"package allowlist verified: {len(paths)} members")

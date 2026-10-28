@@ -76,8 +76,8 @@ export default defineConfig({
     },
     search: { provider: 'local' },
     footer: {
-      message: 'AGPL-3.0-or-later licensed. Normative DIN material and public-prior-art schemas are not redistributed.',
-      copyright: 'Copyright © 2026 openbimrs contributors',
+      message: 'Dual-licensed AGPL-3.0-or-later OR LicenseRef-Commercial. Normative DIN material and public-prior-art schemas are not redistributed.',
+      copyright: 'Copyright © 2026 rheonda',
     },
   },
 })

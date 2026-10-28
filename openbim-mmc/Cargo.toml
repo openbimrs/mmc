@@ -1,9 +1,9 @@
 [package]
 name = "openbim-mmc"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version = "1.99"
-license = "AGPL-3.0-or-later"
+license = "AGPL-3.0-or-later OR LicenseRef-Commercial"
 authors = ["openbimrs contributors"]
 repository = "https://github.com/openbimrs/mmc"
 homepage = "https://openbimrs.github.io/mmc/"
@@ -12,7 +12,7 @@ description = "Pure-Rust MMC 2.0 archive reading, validation, extraction, and wr
 readme = "README.md"
 keywords = ["mmc", "bim", "openbim", "din-18290", "multimodel"]
 categories = ["parser-implementations", "data-structures", "filesystem"]
-include = ["src/**", "tests/**", "README.md", "LICENSE", "CHANGELOG.md", "Cargo.toml", "LICENSES/MIT.txt"]
+include = ["src/**", "tests/**", "README.md", "LICENSE", "NOTICE", "CHANGELOG.md", "Cargo.toml", "LICENSES/MIT.txt", "LICENSES/LicenseRef-Commercial.txt"]
 
 # Dependencies are declared literally rather than inherited from
 # `[workspace.dependencies]`. This crate is consumed two ways: standalone from
